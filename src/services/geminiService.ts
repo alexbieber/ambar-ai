@@ -5,10 +5,15 @@ import {
   MAX_TOKENS_EDIT,
   FLUTTER_SYSTEM_PROMPT,
   ENHANCE_SYSTEM_PROMPT,
+  ENHANCE_MAX_TOTAL_CHARS,
+  ENHANCE_MAX_PER_FILE,
+  ENHANCE_MAX_DESCRIPTION_CHARS,
   PREVIEW_SYSTEM_PROMPT,
+  CODE_TO_HTML_PREVIEW_PROMPT,
   EDIT_SYSTEM_PROMPT,
 } from '../utils/constants';
-import { parseProjectXML, getParseFailurePreview } from './fileParser';
+import { getChatSystemPrompt } from '../agent/prompts';
+import { parseProjectXML, getParseFailurePreview, ensureCriticalFiles } from './fileParser';
 import { wrapPreviewHtml } from './previewGenerator';
 import type { Project, ProjectFile, ChatMessage } from '../types';
 import { APIError } from './claudeService';
@@ -130,11 +135,16 @@ export async function streamCompletion(params: StreamCompletionParams): Promise<
     if (response.status === 429 || response.status === 503) {
       if (attempt < maxRetries) {
         const retryAfter = response.headers.get('retry-after');
-        const waitMs = retryAfter
-          ? Math.min(parseInt(retryAfter, 10) * 1000, 120000)
-          : response.status === 429
-            ? [60000, 90000, 120000][attempt] ?? 120000
-            : Math.min(2000 * Math.pow(2, attempt), 30000);
+        let waitMs: number;
+        if (retryAfter) {
+          const sec = parseInt(retryAfter, 10);
+          waitMs = Number.isNaN(sec) ? 60000 : Math.min(sec * 1000, 120000);
+        } else {
+          waitMs =
+            response.status === 429
+              ? [60000, 90000, 120000][attempt] ?? 120000
+              : Math.min(2000 * Math.pow(2, attempt), 30000);
+        }
         if (params.skipRetryWait) {
           break;
         }
@@ -266,8 +276,9 @@ export async function generateProject(params: {
   onStreamChunk?: (text: string) => void;
   onRetryWait?: (message: string) => void;
   skipRetryWait?: boolean;
+  onParseFailure?: (raw: string) => void;
 }): Promise<Record<string, string>> {
-  const { apiKey, prompt, model, onProgress, onStreamChunk, onRetryWait, skipRetryWait } = params;
+  const { apiKey, prompt, model, onProgress, onStreamChunk, onRetryWait, skipRetryWait, onParseFailure } = params;
   onProgress?.('Sending prompt to API…', 10);
   let received = 0;
   let lastReported = 0;
@@ -303,8 +314,29 @@ export async function generateProject(params: {
   }
 
   onProgress?.('Parsing XML response…', 58);
-  const files = parseProjectXML(fullText);
+  let files = parseProjectXML(fullText);
+  if (Object.keys(files).length === 0 && fullText.trim().length > 200) {
+    onProgress?.('Parse failed, retrying with stricter prompt…', 55);
+    const repairText = await streamCompletion({
+      apiKey,
+      model,
+      system: FLUTTER_SYSTEM_PROMPT + '\n\nCRITICAL: Your response must be ONLY the <project>...</project> XML. No preamble, no explanation, no markdown.',
+      messages: [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: fullText },
+        { role: 'user', content: 'Re-output only the <project>...</project> XML block from your previous response, with no other text.' },
+      ],
+      maxTokens: MAX_TOKENS_PROJECT,
+      onRetryWait,
+      skipRetryWait,
+    });
+    files = parseProjectXML(repairText ?? '');
+  }
   if (Object.keys(files).length === 0) {
+    onParseFailure?.(fullText ?? '');
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[FlutterForge] generateProject parse failed', { responseLength: fullText?.length ?? 0 });
+    }
     const preview = getParseFailurePreview(fullText);
     const isEmpty = !preview || preview.startsWith('(empty');
     const mainMsg =
@@ -314,12 +346,34 @@ export async function generateProject(params: {
     throw new APIError(mainMsg + (preview && !isEmpty ? `\n\nResponse preview:\n${preview}` : ''));
   }
   onProgress?.(`Parsed ${Object.keys(files).length} files`, 60);
-  return files;
+  return ensureCriticalFiles(files);
 }
 
 function buildEnhanceUserMessage(description: string, instruction: string, files: Record<string, string>): string {
-  const fileBlocks = Object.entries(files).map(([path, content]) => `--- FILE: ${path} ---\n${content}\n`);
-  return `Current app description:\n${description}\n\nUser wants to make these changes:\n${instruction}\n\nCurrent project files (output the FULL updated project in XML after this):\n${fileBlocks.join('\n')}`;
+  const descCapped =
+    description.length > ENHANCE_MAX_DESCRIPTION_CHARS
+      ? description.slice(0, ENHANCE_MAX_DESCRIPTION_CHARS) + '\n\n... (earlier enhancements truncated)'
+      : description;
+  let total = 0;
+  let hadTruncation = description.length > ENHANCE_MAX_DESCRIPTION_CHARS;
+  const fileBlocks: string[] = [];
+  for (const [path, content] of Object.entries(files)) {
+    if (total >= ENHANCE_MAX_TOTAL_CHARS) break;
+    const capped = content.length > ENHANCE_MAX_PER_FILE ? content.slice(0, ENHANCE_MAX_PER_FILE) + '\n\n... (truncated)' : content;
+    if (content.length > ENHANCE_MAX_PER_FILE) hadTruncation = true;
+    const block = `--- FILE: ${path} ---\n${capped}\n`;
+    if (total + block.length > ENHANCE_MAX_TOTAL_CHARS) {
+      fileBlocks.push(block.slice(0, ENHANCE_MAX_TOTAL_CHARS - total));
+      hadTruncation = true;
+      break;
+    }
+    fileBlocks.push(block);
+    total += block.length;
+  }
+  const truncNote = hadTruncation
+    ? '\n\nNote: Some file contents above were truncated due to length limits; preserve structure and only modify what you can see.'
+    : '';
+  return `Current app description:\n${descCapped}\n\nUser wants to make these changes:\n${instruction}\n\nCurrent project files (output the FULL updated project in XML after this):\n${fileBlocks.join('\n')}${truncNote}`;
 }
 
 export async function enhanceProject(params: {
@@ -332,6 +386,7 @@ export async function enhanceProject(params: {
   onStreamChunk?: (chunk: string) => void;
   onRetryWait?: (message: string) => void;
   skipRetryWait?: boolean;
+  onParseFailure?: (raw: string) => void;
 }): Promise<Record<string, string>> {
   const { apiKey, currentDescription, instruction, files, model, onProgress, onStreamChunk, onRetryWait, skipRetryWait } = params;
   onProgress?.('Preparing enhance request…', 5);
@@ -370,6 +425,10 @@ export async function enhanceProject(params: {
   onProgress?.('Parsing updated project…', 58);
   const out = parseProjectXML(fullText);
   if (Object.keys(out).length === 0) {
+    params.onParseFailure?.(fullText ?? '');
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[FlutterForge] enhanceProject parse failed', { responseLength: fullText?.length ?? 0 });
+    }
     const preview = getParseFailurePreview(fullText);
     const isEmpty = !preview || preview.startsWith('(empty');
     throw new APIError(
@@ -379,7 +438,7 @@ export async function enhanceProject(params: {
     );
   }
   onProgress?.(`Parsed ${Object.keys(out).length} files`, 60);
-  return out;
+  return ensureCriticalFiles(out);
 }
 
 export async function generatePreview(params: {
@@ -421,6 +480,45 @@ export async function generatePreview(params: {
   return wrapPreviewHtml(html);
 }
 
+/** Generate preview HTML from current Dart/code (not from description). */
+export async function generatePreviewFromCode(params: {
+  apiKey: string;
+  code: string;
+  model?: string;
+  onProgress?: (step: string) => void;
+}): Promise<string> {
+  const { apiKey, code, model, onProgress } = params;
+  onProgress?.('Requesting preview from code…');
+  const cappedCode = code.slice(0, 12000);
+  const codeMessage =
+    code.length > 12000
+      ? `The following Dart code was truncated to 12000 characters; render based on what you see.\n\n${cappedCode}`
+      : cappedCode;
+  let fullText = await streamCompletion({
+    apiKey,
+    model,
+    system: CODE_TO_HTML_PREVIEW_PROMPT,
+    messages: [{ role: 'user', content: codeMessage }],
+    maxTokens: MAX_TOKENS_PREVIEW,
+    onChunk: (chunk) => {
+      if (chunk.length > 0) onProgress?.('Streaming preview HTML…');
+    },
+  });
+  if (!fullText || fullText.trim().length === 0) {
+    fullText = await generateContentNonStreaming({
+      apiKey,
+      model,
+      system: CODE_TO_HTML_PREVIEW_PROMPT,
+      messages: [{ role: 'user', content: codeMessage }],
+      maxTokens: MAX_TOKENS_PREVIEW,
+    });
+  }
+  onProgress?.('Wrapping preview…');
+  const html = (fullText ?? '').trim();
+  if (!html) return wrapPreviewHtml('<p style="padding:16px;color:#888;">No HTML generated from code.</p>');
+  return wrapPreviewHtml(html);
+}
+
 export async function editFile(params: {
   apiKey: string;
   instruction: string;
@@ -453,7 +551,7 @@ export async function chatWithProject(params: {
 }): Promise<ChatMessage> {
   const { apiKey, message, project, history, onChunk } = params;
   const projectSummary = `Project: ${project.name}\nDescription: ${project.description}\nFiles: ${Object.keys(project.files).join(', ')}`;
-  const system = `You are FlutterForge AI. The user is working on a Flutter project. Answer questions about the project and suggest code when relevant.\n\n${projectSummary}`;
+  const system = getChatSystemPrompt(projectSummary);
 
   const messages: { role: string; content: string }[] = [
     ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),

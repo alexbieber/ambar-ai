@@ -4,13 +4,17 @@ import { useGenerate } from '../../hooks/useGenerate';
 import { createPreviewBlobUrl } from '../../services/previewGenerator';
 import { Tag } from '../ui/Tag';
 import { Spinner } from '../ui/Spinner';
-import { RotateCw, Maximize2, Smartphone } from 'lucide-react';
+import { RotateCw, Maximize2, Smartphone, Code } from 'lucide-react';
 import { clsx } from 'clsx';
+import type { PreviewSource } from '../../types';
 
 type Device = 'iphone' | 'android' | 'tablet';
 
 const PREVIEW_CONTENT_WIDTH = 390;
 const PREVIEW_CONTENT_HEIGHT = 760;
+
+const PREVIEW_FAILURE_PLACEHOLDER_HTML =
+  '<!DOCTYPE html><html><body style="background:#0e0e1c;color:#888;font-family:monospace;padding:16px;">Preview could not be generated.</body></html>';
 
 const DEVICE_STYLES: Record<Device, { width: number; height: number; contentHeightOffset: number; className: string }> = {
   iphone: {
@@ -36,7 +40,7 @@ const DEVICE_STYLES: Record<Device, { width: number; height: number; contentHeig
 
 export function PreviewPanel() {
   const project = useProjectStore((s) => s.project);
-  const { regeneratePreview, isGenerating } = useGenerate();
+  const { regeneratePreview, regeneratePreviewFromCode, isGenerating } = useGenerate();
   const [device, setDevice] = useState<Device>('iphone');
   const [fullscreen, setFullscreen] = useState(false);
 
@@ -66,6 +70,9 @@ export function PreviewPanel() {
   const scaledW = Math.round(PREVIEW_CONTENT_WIDTH * scale);
   const scaledH = Math.round(PREVIEW_CONTENT_HEIGHT * scale);
   const hasContent = Boolean(project?.previewHtml?.trim());
+  const isPlaceholderFailure =
+    project?.previewHtml?.trim() === PREVIEW_FAILURE_PLACEHOLDER_HTML.trim();
+  const previewSource: PreviewSource | undefined = project?.previewSource;
   const fileCount = project ? Object.keys(project.files).length : 0;
   const totalLines = project
     ? Object.values(project.files).reduce((n, f) => n + (f.content.split(/\n/).length || 1), 0)
@@ -75,16 +82,32 @@ export function PreviewPanel() {
     <>
     <div className="h-full flex flex-col bg-[var(--panel)] border-l border-[var(--border)] overflow-hidden">
       <div className="px-3 py-2 border-b border-[var(--border)] flex items-center justify-between flex-shrink-0">
-        <span className="text-[9px] uppercase tracking-wider text-[var(--muted)]">Live Preview</span>
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-[9px] uppercase tracking-wider text-[var(--muted)]">Live Preview</span>
+          {previewSource && (
+            <Tag variant="muted" className="text-[9px]">
+              {previewSource === 'code' ? 'From code' : 'From description'}
+            </Tag>
+          )}
+        </div>
         <div className="flex items-center gap-1">
           <button
             type="button"
             onClick={() => regeneratePreview()}
             disabled={!project || isGenerating}
             className="p-1.5 rounded text-[var(--muted)] hover:text-accent hover:bg-[var(--faint)] disabled:opacity-50"
-            title="Refresh preview"
+            title="Regenerate from description"
           >
             <RotateCw className={clsx('w-4 h-4', isGenerating && 'animate-spin')} />
+          </button>
+          <button
+            type="button"
+            onClick={() => regeneratePreviewFromCode()}
+            disabled={!project || isGenerating}
+            className="p-1.5 rounded text-[var(--muted)] hover:text-accent hover:bg-[var(--faint)] disabled:opacity-50"
+            title="Preview from current code"
+          >
+            <Code className="w-4 h-4" />
           </button>
           <button
             type="button"
@@ -139,7 +162,30 @@ export function PreviewPanel() {
                   <p className="text-[10px] text-[var(--muted)] animate-pulse">Rendering preview…</p>
                 </div>
               )}
-              {project && hasContent && blobUrl && (
+              {project && hasContent && isPlaceholderFailure && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 gap-3">
+                  <p className="text-[10px] text-[var(--muted)]">Preview could not be generated.</p>
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => regeneratePreview()}
+                      disabled={isGenerating}
+                      className="px-3 py-1.5 rounded-lg bg-accent/20 text-accent text-xs font-medium hover:bg-accent/30 disabled:opacity-50"
+                    >
+                      {isGenerating ? '…' : 'Retry'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => regeneratePreviewFromCode()}
+                      disabled={isGenerating}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] text-xs hover:bg-[var(--faint)] disabled:opacity-50"
+                    >
+                      Preview from code
+                    </button>
+                  </div>
+                </div>
+              )}
+              {project && hasContent && !isPlaceholderFailure && blobUrl && (
                 <div
                   className="flex items-center justify-center overflow-hidden"
                   style={{ width: style.width, height: contentH }}

@@ -143,6 +143,8 @@ export interface ProjectFile {
   lastEditedByProvider: ProviderId | null;
 }
 
+export type PreviewSource = 'description' | 'code';
+
 export interface Project {
   id: string;
   name: string;
@@ -150,6 +152,8 @@ export interface Project {
   files: Record<string, ProjectFile>;
   createdAt: number;
   previewHtml: string;
+  /** Whether preview was generated from app description or from current code */
+  previewSource?: PreviewSource;
   generatedByProvider: ProviderId;
 }
 

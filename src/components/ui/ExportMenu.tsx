@@ -6,11 +6,12 @@ import {
   copyProjectSummary,
   generateReadme,
 } from '../../services/exportService';
-import { Download, FileText, Copy, FileCode } from 'lucide-react';
+import { Download, FileText, Copy, FileCode, BookOpen } from 'lucide-react';
 
 export function ExportMenu() {
   const project = useProjectStore((s) => s.project);
   const showNotification = useUiStore((s) => s.showNotification);
+  const setActiveRightTab = useUiStore((s) => s.setActiveRightTab);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -61,7 +62,8 @@ export function ExportMenu() {
     const text = copyProjectSummary(project);
     try {
       await navigator.clipboard.writeText(text);
-      showNotification('Project summary copied', 'success');
+      const count = Object.keys(project.files).length;
+      showNotification(`${count} files copied (paste into your project)`, 'success');
     } catch {
       showNotification('Clipboard access denied or failed', 'error');
     }
@@ -124,6 +126,17 @@ export function ExportMenu() {
           >
             <FileText className="w-4 h-4" />
             Download README
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveRightTab('howto');
+              setOpen(false);
+            }}
+            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+          >
+            <BookOpen className="w-4 h-4" />
+            How to run
           </button>
           <div className="border-t border-[var(--border)] my-1" />
           <button

@@ -97,8 +97,15 @@ export function EditorPanel() {
 
   const handleCopyAll = async () => {
     if (!project) return;
-    const text = Object.entries(project.files)
-      .map(([path, f]) => `// ${path}\n${f.content}`)
+    const paths = Object.keys(project.files).sort((a, b) => {
+      if (a === 'pubspec.yaml') return -1;
+      if (b === 'pubspec.yaml') return 1;
+      if (a === 'lib/main.dart') return -1;
+      if (b === 'lib/main.dart') return 1;
+      return a.localeCompare(b);
+    });
+    const text = paths
+      .map((path) => `// ${path}\n${project.files[path].content}`)
       .join('\n\n');
     try {
       await navigator.clipboard.writeText(text);

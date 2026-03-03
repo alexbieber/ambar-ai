@@ -10,6 +10,9 @@ lerna-debug.log*
 node_modules
 dist
 
+# Temp / generated
+_temp_prompts_repo/
+
 # Environment / secrets (never commit API keys)
 .env
 .env.local

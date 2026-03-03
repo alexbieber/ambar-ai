@@ -8,13 +8,27 @@ function safeZipPath(path: string): string | null {
   return p || null;
 }
 
+/** Deterministic order: pubspec, lib/main.dart, then rest alphabetically. */
+function sortFilePaths(paths: string[]): string[] {
+  const a = paths.slice();
+  a.sort((p, q) => {
+    if (p === 'pubspec.yaml' && q !== 'pubspec.yaml') return -1;
+    if (p !== 'pubspec.yaml' && q === 'pubspec.yaml') return 1;
+    if (p === 'lib/main.dart' && q !== 'lib/main.dart') return -1;
+    if (p !== 'lib/main.dart' && q === 'lib/main.dart') return 1;
+    return p.localeCompare(q);
+  });
+  return a;
+}
+
 export async function exportAsZip(project: Project): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const encoder = new TextEncoder();
+  const paths = sortFilePaths(Object.keys(project.files));
 
-  for (const [path, file] of Object.entries(project.files)) {
+  for (const path of paths) {
     const safe = safeZipPath(path);
-    if (safe) files[safe] = encoder.encode(file.content);
+    if (safe) files[safe] = encoder.encode(project.files[path].content);
   }
 
   const readme = generateReadme(project);
@@ -38,13 +52,12 @@ export function exportFileAsText(file: ProjectFile): void {
 }
 
 export function copyProjectSummary(project: Project): string {
-  const fileList = Object.keys(project.files).join('\n');
+  const fileList = sortFilePaths(Object.keys(project.files)).join('\n');
   return `# ${project.name}\n\nGenerated with FlutterForge AI\n\n## Files\n\n${fileList}\n\n## Setup\n\n1. flutter create my_app\n2. Replace lib/ and pubspec.yaml with generated files\n3. flutter run`;
 }
 
 export function generateReadme(project: Project): string {
-  const fileList = Object.keys(project.files)
-    .sort()
+  const fileList = sortFilePaths(Object.keys(project.files))
     .map((p) => `- ${p}`)
     .join('\n');
   const deps = project.files['pubspec.yaml']?.content?.match(/dependencies:[\s\S]*?(?=\n\w|$)/)?.[0] ?? 'See pubspec.yaml';

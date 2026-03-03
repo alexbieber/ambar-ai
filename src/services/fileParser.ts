@@ -114,6 +114,34 @@ export function parseProjectXML(raw: string): Record<string, string> {
   return out;
 }
 
+const MINIMAL_PUBSPEC = `name: app
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  flutter:
+    sdk: flutter
+`;
+
+const MINIMAL_MAIN_DART = `import 'package:flutter/material.dart';
+
+void main() => runApp(const MaterialApp(home: Scaffold(body: Center(child: Text('Flutter App')))));
+`;
+
+/**
+ * Ensures a project record has critical files so the IDE never receives an invalid project.
+ * Adds minimal pubspec.yaml and/or lib/main.dart only when missing; does not overwrite existing.
+ */
+export function ensureCriticalFiles(files: Record<string, string>): Record<string, string> {
+  if (Object.keys(files).length === 0) return files;
+  const out = { ...files };
+  if (!out['pubspec.yaml']) out['pubspec.yaml'] = MINIMAL_PUBSPEC;
+  if (!out['lib/main.dart']) {
+    const firstDart = Object.entries(out).find(([p]) => p.endsWith('.dart'));
+    out['lib/main.dart'] = firstDart ? firstDart[1] : MINIMAL_MAIN_DART;
+  }
+  return out;
+}
+
 /** Returns a short preview of the raw response for inclusion in parse-failure errors. */
 export function getParseFailurePreview(raw: string, maxChars = 800): string {
   if (!raw || typeof raw !== 'string') return '(empty or invalid response)';

@@ -59,6 +59,8 @@ export function useKeyboard() {
         return;
       }
       if (meta && e.key === 'Enter' && isInput && !e.defaultPrevented) {
+        // Only generate when focus is in the main prompt textarea, not Enhance
+        if (target.getAttribute?.('data-purpose') === 'enhance') return;
         const textarea = target as HTMLTextAreaElement;
         if (textarea.value?.trim()) {
           e.preventDefault();

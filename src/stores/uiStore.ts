@@ -47,11 +47,15 @@ export const useUiStore = create<UiState>((set) => ({
   showShortcutsModal: false,
   notifications: [],
 
-  setSidebarWidth: (w) => set({ sidebarWidth: Math.max(180, Math.min(400, w)) }),
+  // Allow collapsed width (28–40) for sidebar; expanded range 180–400
+  setSidebarWidth: (w) =>
+    set({ sidebarWidth: w <= 40 ? Math.max(28, Math.min(40, w)) : Math.max(180, Math.min(400, w)) }),
 
-  setExplorerWidth: (w) => set({ explorerWidth: Math.max(150, Math.min(350, w)) }),
+  setExplorerWidth: (w) =>
+    set({ explorerWidth: w <= 40 ? Math.max(28, Math.min(40, w)) : Math.max(150, Math.min(350, w)) }),
 
-  setPreviewWidth: (w) => set({ previewWidth: Math.max(240, Math.min(500, w)) }),
+  setPreviewWidth: (w) =>
+    set({ previewWidth: w <= 40 ? Math.max(28, Math.min(40, w)) : Math.max(240, Math.min(500, w)) }),
 
   togglePreview: () => set((s) => ({ showPreview: !s.showPreview })),
 

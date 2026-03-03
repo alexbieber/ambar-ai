@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { v4 as uuid } from 'uuid';
 import { useProjectStore } from '../stores/projectStore';
 import { useAiStore } from '../stores/aiStore';
 import { useUiStore } from '../stores/uiStore';
@@ -7,6 +8,19 @@ import * as gemini from '../services/geminiService';
 import { APIError } from '../services/claudeService';
 import { inferLanguage } from '../services/fileParser';
 import type { Project, ProjectFile, GenerationStep, ProviderId } from '../types';
+
+/** Deterministic order: pubspec, lib/main.dart, then rest alphabetically. */
+function sortFilePaths(paths: string[]): string[] {
+  const a = paths.slice();
+  a.sort((p, q) => {
+    if (p === 'pubspec.yaml' && q !== 'pubspec.yaml') return -1;
+    if (p !== 'pubspec.yaml' && q === 'pubspec.yaml') return 1;
+    if (p === 'lib/main.dart' && q !== 'lib/main.dart') return -1;
+    if (p !== 'lib/main.dart' && q === 'lib/main.dart') return 1;
+    return p.localeCompare(q);
+  });
+  return a;
+}
 
 const STEPS: GenerationStep[] = [
   { id: '1', label: 'Initializing project architecture', status: 'pending' },
@@ -31,7 +45,9 @@ function createProjectFile(path: string, content: string): ProjectFile {
 
 export function useGenerate() {
   const setProject = useProjectStore((s) => s.setProject);
+  const setProjectPreservingTabs = useProjectStore((s) => s.setProjectPreservingTabs);
   const addToHistory = useProjectStore((s) => s.addToHistory);
+  const setPreEnhanceSnapshot = useProjectStore((s) => s.setPreEnhanceSnapshot);
   const updateFileContent = useProjectStore((s) => s.updateFileContent);
   const project = useProjectStore((s) => s.project);
 
@@ -42,10 +58,12 @@ export function useGenerate() {
   const setSteps = useAiStore((s) => s.setSteps);
   const updateStepStatus = useAiStore((s) => s.updateStepStatus);
   const setLastError = useAiStore((s) => s.setLastError);
+  const setLastParseFailureRaw = useAiStore((s) => s.setLastParseFailureRaw);
   const clearError = useAiStore((s) => s.clearError);
   const appendStreamingChunk = useAiStore((s) => s.appendStreamingChunk);
   const addGeneratedFilePath = useAiStore((s) => s.addGeneratedFilePath);
   const clearGenerationLive = useAiStore((s) => s.clearGenerationLive);
+  const setOperationType = useAiStore((s) => s.setOperationType);
 
   const showNotification = useUiStore((s) => s.showNotification);
   const anthropicApiKey = useAiStore((s) => s.anthropicApiKey);
@@ -63,7 +81,9 @@ export function useGenerate() {
       }
       clearError();
       clearGenerationLive();
+      setPreEnhanceSnapshot(null);
       setLoading(true);
+      setOperationType('generate');
       setSteps(STEPS.map((s) => ({ ...s, status: 'pending' as const })));
 
       try {
@@ -82,6 +102,7 @@ export function useGenerate() {
           prompt,
           model: modelId,
           onStreamChunk: appendStreamingChunk,
+          onParseFailure: setLastParseFailureRaw,
           onProgress: (step, pct) => {
             setStep(step, Math.min(60, 10 + pct * 0.5));
             updateStepStatus('2', 'running', step);
@@ -98,17 +119,18 @@ export function useGenerate() {
         setStep('Parsing project structure…', 62);
 
         const files: Record<string, ProjectFile> = {};
-        const entries = Object.entries(filesRecord);
-        entries.forEach(([path, content], i) => {
+        const sortedPaths = sortFilePaths(Object.keys(filesRecord));
+        sortedPaths.forEach((path, i) => {
+          const content = filesRecord[path];
           files[path] = createProjectFile(path, content);
           addGeneratedFilePath(path);
           const num = i + 1;
-          const total = entries.length;
+          const total = sortedPaths.length;
           setStep(`Creating file ${num}/${total}: ${path}`, 63 + (num / total) * 4);
           updateStepStatus('3', 'running', `${path} (${num}/${total})`);
         });
 
-        updateStepStatus('3', 'done', `${entries.length} files created`);
+        updateStepStatus('3', 'done', `${sortedPaths.length} files created`);
         updateStepStatus('4', 'running', 'Calling API…');
         setStep('Rendering live preview…', 70);
 
@@ -135,12 +157,13 @@ export function useGenerate() {
 
         const generatedByProvider: ProviderId = effectiveProvider === 'anthropic' ? 'claude' : 'gemini';
         const proj: Project = {
-          id: `proj-${Date.now()}`,
+          id: `proj-${uuid()}`,
           name: 'Flutter App',
           description: prompt,
           files,
           createdAt: Date.now(),
           previewHtml,
+          previewSource: 'description',
           generatedByProvider,
         };
 
@@ -149,7 +172,12 @@ export function useGenerate() {
         updateStepStatus('5', 'done');
         setStep('Done', 100);
         clearGenerationLive();
-        showNotification(forceProvider === 'anthropic' ? 'Project generated with Claude (Gemini was rate limited).' : 'Project generated successfully.', 'success');
+        const fileCount = Object.keys(proj.files).length;
+        const msg =
+          forceProvider === 'anthropic'
+            ? `Project generated with Claude (${fileCount} files). Export → How to run for setup.`
+            : `Project generated (${fileCount} files). Export → How to run for setup.`;
+        showNotification(msg, 'success');
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Generation failed';
         setLastError(msg);
@@ -174,6 +202,7 @@ export function useGenerate() {
         setSteps(ai.steps.map((st) => ({ ...st, status: st.status === 'running' ? 'error' as const : st.status })));
       } finally {
         setLoading(false);
+        setOperationType(null);
       }
     },
     [
@@ -181,17 +210,20 @@ export function useGenerate() {
       provider,
       anthropicApiKey,
       setProject,
+      setPreEnhanceSnapshot,
       addToHistory,
       setLoading,
       setSteps,
       setStep,
       updateStepStatus,
       setLastError,
+      setLastParseFailureRaw,
       clearError,
       showNotification,
       appendStreamingChunk,
       addGeneratedFilePath,
       clearGenerationLive,
+      setOperationType,
     ]
   );
 
@@ -245,7 +277,7 @@ export function useGenerate() {
     const ai = eff === 'anthropic' ? claude : gemini;
     try {
       const html = await ai.generatePreview({ apiKey: key, prompt: project.description, model: modelId });
-      setProject({ ...project, previewHtml: html });
+      setProject({ ...project, previewHtml: html, previewSource: 'description' });
       showNotification('Preview regenerated.', 'success');
     } catch (err) {
       showNotification(err instanceof Error ? err.message : 'Preview failed', 'error');
@@ -254,8 +286,35 @@ export function useGenerate() {
     }
   }, [project, setProject, setLoading, showNotification]);
 
+  const regeneratePreviewFromCode = useCallback(async () => {
+    const state = useAiStore.getState();
+    const key = state.getEffectiveApiKey();
+    const modelId = state.getEffectiveModelId(state.getEffectiveProvider());
+    if (!key || !project) return;
+    const mainPath = 'lib/main.dart';
+    const paths = Object.keys(project.files).filter((p) => p.endsWith('.dart'));
+    const ordered = [mainPath].filter((p) => paths.includes(p)).concat(paths.filter((p) => p !== mainPath).sort());
+    const code = ordered.map((p) => `// ${p}\n${project.files[p].content}`).join('\n\n');
+    if (!code.trim()) {
+      showNotification('No Dart files to preview.', 'error');
+      return;
+    }
+    setLoading(true);
+    const eff = state.getEffectiveProvider();
+    const ai = eff === 'anthropic' ? claude : gemini;
+    try {
+      const html = await ai.generatePreviewFromCode({ apiKey: key, code, model: modelId });
+      setProject({ ...project, previewHtml: html, previewSource: 'code' });
+      showNotification('Preview updated from current code.', 'success');
+    } catch (err) {
+      showNotification(err instanceof Error ? err.message : 'Preview from code failed', 'error');
+    } finally {
+      setLoading(false);
+    }
+  }, [project, setProject, setLoading, showNotification]);
+
   const enhance = useCallback(
-    async (instruction: string) => {
+    async (instruction: string, options?: { onSuccess?: () => void }) => {
       const state = useAiStore.getState();
       const key = state.getEffectiveApiKey();
       const eff = state.getEffectiveProvider();
@@ -265,7 +324,9 @@ export function useGenerate() {
         return;
       }
       clearError();
+      setPreEnhanceSnapshot(project);
       setLoading(true);
+      setOperationType('enhance');
       const ai = eff === 'anthropic' ? claude : gemini;
       const filesContent: Record<string, string> = {};
       for (const [path, file] of Object.entries(project.files)) {
@@ -279,12 +340,18 @@ export function useGenerate() {
           instruction: instruction.trim(),
           files: filesContent,
           model: modelId,
+          onParseFailure: setLastParseFailureRaw,
           onProgress: (step) => setStep(step, 50),
           onStreamChunk: appendStreamingChunk,
         });
+        const existingContent: Record<string, string> = {};
+        for (const [path, file] of Object.entries(project.files)) {
+          existingContent[path] = file.content;
+        }
+        const mergedRecord = { ...existingContent, ...filesRecord };
         const files: Record<string, ProjectFile> = {};
-        for (const [path, content] of Object.entries(filesRecord)) {
-          files[path] = createProjectFile(path, content);
+        for (const path of sortFilePaths(Object.keys(mergedRecord))) {
+          files[path] = createProjectFile(path, mergedRecord[path]);
         }
         setStep('Updating preview…', 85);
         let previewHtml = project.previewHtml;
@@ -298,34 +365,39 @@ export function useGenerate() {
           files,
           description: project.description + '\n\nEnhancement: ' + instruction.trim(),
           previewHtml,
+          previewSource: 'description',
         };
-        setProject(updated);
-        addToHistory(updated);
+        setProjectPreservingTabs(updated);
         showNotification('Project enhanced successfully.', 'success');
+        options?.onSuccess?.();
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Enhance failed';
         setLastError(msg);
         showNotification(msg, 'error');
       } finally {
         setLoading(false);
+        setOperationType(null);
       }
     },
-    [project, setProject, addToHistory, setLoading, setStep, setLastError, clearError, showNotification, appendStreamingChunk]
+    [project, setProjectPreservingTabs, setPreEnhanceSnapshot, setLoading, setStep, setLastError, setLastParseFailureRaw, clearError, showNotification, appendStreamingChunk, setOperationType]
   );
 
   const isGenerating = useAiStore((s) => s.isLoading);
   const currentStep = useAiStore((s) => s.currentStep);
   const progress = useAiStore((s) => s.progress);
   const steps = useAiStore((s) => s.steps);
+  const operationType = useAiStore((s) => s.operationType);
 
   return {
     generate,
     enhance,
     editFile,
     regeneratePreview,
+    regeneratePreviewFromCode,
     isGenerating,
     currentStep,
     progress,
     steps,
+    operationType,
   };
 }

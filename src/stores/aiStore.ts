@@ -32,8 +32,12 @@ interface AiState {
   steps: GenerationStep[];
   chatHistory: ChatMessage[];
   lastError: string | null;
+  /** Raw API response when parse failed (for "Copy raw response") */
+  lastParseFailureRaw: string | null;
   streamingContent: string;
   generatedFilePaths: string[];
+  /** 'generate' | 'enhance' while that operation is running; null otherwise. */
+  operationType: 'generate' | 'enhance' | null;
 
   setProvider: (p: AIProvider) => void;
   setClaudeModel: (modelId: string) => void;
@@ -53,10 +57,12 @@ interface AiState {
   updateStepStatus: (id: string, status: GenerationStep['status'], detail?: string) => void;
   addChatMessage: (msg: ChatMessage) => void;
   setLastError: (error: string | null) => void;
+  setLastParseFailureRaw: (raw: string | null) => void;
   clearError: () => void;
   appendStreamingChunk: (chunk: string) => void;
   addGeneratedFilePath: (path: string) => void;
   clearGenerationLive: () => void;
+  setOperationType: (type: 'generate' | 'enhance' | null) => void;
 }
 
 function getStored(key: string): string {
@@ -129,8 +135,10 @@ export const useAiStore = create<AiState>((set, get) => {
     steps: [],
     chatHistory: [],
     lastError: null,
+    lastParseFailureRaw: null,
     streamingContent: '',
     generatedFilePaths: [],
+    operationType: null,
 
     setProvider: (p) => {
       if (typeof localStorage !== 'undefined') localStorage.setItem(PROVIDER_KEY, p);
@@ -263,7 +271,9 @@ export const useAiStore = create<AiState>((set, get) => {
 
     setLastError: (error) => set({ lastError: error }),
 
-    clearError: () => set({ lastError: null }),
+    setLastParseFailureRaw: (raw) => set({ lastParseFailureRaw: raw }),
+
+    clearError: () => set({ lastError: null, lastParseFailureRaw: null }),
 
     appendStreamingChunk: (chunk) =>
       set((s) => ({
@@ -274,6 +284,8 @@ export const useAiStore = create<AiState>((set, get) => {
       set((s) => ({ generatedFilePaths: [...s.generatedFilePaths, path] })),
 
     clearGenerationLive: () => set({ streamingContent: '', generatedFilePaths: [] }),
+
+    setOperationType: (type) => set({ operationType: type }),
 
     getEffectiveProvider: () => {
       const s = get();

@@ -30,8 +30,12 @@ interface ProjectState {
   activeFilePath: string | null;
   openTabs: string[];
   history: Project[];
+  /** Single snapshot for "Undo last enhance" */
+  preEnhanceSnapshot: Project | null;
 
   setProject: (project: Project) => void;
+  /** Set project but keep open tabs / active file when they exist in the new project (e.g. after enhance). */
+  setProjectPreservingTabs: (project: Project) => void;
   setActiveFile: (path: string) => void;
   closeTab: (path: string) => void;
   updateFileContent: (path: string, content: string) => void;
@@ -39,6 +43,8 @@ interface ProjectState {
   clearHistory: () => void;
   addToHistory: (project: Project) => void;
   loadFromHistory: (index: number) => void;
+  setPreEnhanceSnapshot: (project: Project | null) => void;
+  undoLastEnhance: () => void;
 }
 
 export const useProjectStore = create<ProjectState>((set, get) => ({
@@ -46,6 +52,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   activeFilePath: null,
   openTabs: [],
   history: loadHistoryFromStorage(),
+  preEnhanceSnapshot: null,
 
   setProject: (project) => {
     set({ project, activeFilePath: null, openTabs: [] });
@@ -53,6 +60,25 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const files = project.files;
     const firstPath = mainPath in files ? mainPath : Object.keys(files)[0];
     if (firstPath) get().setActiveFile(firstPath);
+  },
+
+  setProjectPreservingTabs: (project) => {
+    const { openTabs, activeFilePath } = get();
+    const paths = Object.keys(project.files);
+    const mainPath = 'lib/main.dart';
+    const firstPath = mainPath in project.files ? mainPath : paths[0];
+    const keptTabs = openTabs.filter((p) => p in project.files);
+    const keptActive =
+      activeFilePath && activeFilePath in project.files
+        ? activeFilePath
+        : keptTabs[0] ?? firstPath;
+    const openTabsNext =
+      keptTabs.length > 0 ? keptTabs : (firstPath ? [firstPath] : []);
+    const activeNext = keptActive ?? null;
+    set({ project, openTabs: openTabsNext, activeFilePath: activeNext });
+    if (activeNext && !openTabsNext.includes(activeNext)) {
+      get().setActiveFile(activeNext);
+    }
   },
 
   setActiveFile: (path) => {
@@ -113,8 +139,24 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   loadFromHistory: (index) => {
     const { history } = get();
+    if (index < 0 || index >= history.length) return;
     const p = history[index];
     if (p) get().setProject(p);
+  },
+
+  setPreEnhanceSnapshot: (project) => set({ preEnhanceSnapshot: project }),
+
+  undoLastEnhance: () => {
+    const { preEnhanceSnapshot } = get();
+    if (preEnhanceSnapshot) {
+      set({ project: preEnhanceSnapshot, preEnhanceSnapshot: null });
+      const mainPath = 'lib/main.dart';
+      const firstPath =
+        mainPath in preEnhanceSnapshot.files
+          ? mainPath
+          : Object.keys(preEnhanceSnapshot.files)[0];
+      if (firstPath) get().setActiveFile(firstPath);
+    }
   },
 }));
 
