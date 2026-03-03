@@ -243,10 +243,7 @@ export function EditorPanel() {
           <button
             type="button"
             onClick={() => setActiveRightTab('howto')}
-            className={clsx(
-              'p-2 rounded text-xs flex items-center gap-1',
-              activeRightTab === 'howto' ? 'bg-accent/20 text-accent' : 'text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]'
-            )}
+            className="p-2 rounded text-xs flex items-center gap-1 text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]"
           >
             <BookOpen className="w-4 h-4" />
             How to Run
