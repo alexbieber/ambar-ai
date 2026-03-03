@@ -122,13 +122,17 @@ export function FileExplorer() {
     [searchLower]
   );
 
-  const handleCopyAll = () => {
+  const handleCopyAll = async () => {
     if (!project) return;
     const text = Object.entries(project.files)
       .map(([path, f]) => `// ${path}\n${f.content}`)
       .join('\n\n');
-    navigator.clipboard.writeText(text);
-    useUiStore.getState().showNotification('All files copied to clipboard', 'success');
+    try {
+      await navigator.clipboard.writeText(text);
+      useUiStore.getState().showNotification('All files copied to clipboard', 'success');
+    } catch {
+      useUiStore.getState().showNotification('Clipboard access denied or failed', 'error');
+    }
   };
 
   const handleContextMenu = (e: React.MouseEvent, path: string) => {
@@ -218,12 +222,17 @@ export function FileExplorer() {
             style={{ left: contextMenu.x, top: contextMenu.y }}
           >
             <button
-              type="button"
-              className="w-full px-3 py-2 text-left text-xs text-[var(--text)] hover:bg-[var(--faint)]"
-              onClick={() => {
-                navigator.clipboard.writeText(contextMenu.path);
-                setContextMenu(null);
-              }}
+                type="button"
+                className="w-full px-3 py-2 text-left text-xs text-[var(--text)] hover:bg-[var(--faint)]"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(contextMenu.path);
+                    useUiStore.getState().showNotification('Path copied', 'success');
+                  } catch {
+                    useUiStore.getState().showNotification('Clipboard access denied or failed', 'error');
+                  }
+                  setContextMenu(null);
+                }}
             >
               Copy path
             </button>

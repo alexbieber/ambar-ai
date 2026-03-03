@@ -66,6 +66,29 @@ export function ApiKeyModal() {
     showNotification('API key saved.', 'success');
   };
 
+  const handleSaveKeyOnly = () => {
+    setError('');
+    if (!key.trim()) {
+      setError('Please enter your API key.');
+      return;
+    }
+    if (activeTab === 'anthropic') {
+      if (!validateAnthropic()) {
+        setError('Anthropic key must start with sk-ant-');
+        return;
+      }
+      setAnthropicKey(key.trim());
+    } else {
+      if (!validateGemini()) {
+        setError('Enter a valid Google AI (Gemini) API key.');
+        return;
+      }
+      setGeminiKey(key.trim());
+    }
+    setShowApiKeyModal(false);
+    showNotification('API key saved. Provider unchanged (Auto will use when available).', 'success');
+  };
+
   const handleTest = async () => {
     if (activeTab === 'anthropic') {
       if (!key.trim() || !validateAnthropic()) return;
@@ -223,16 +246,23 @@ export function ApiKeyModal() {
           )}
         </p>
 
-        <div className="mt-4 flex gap-2">
-          <Button
-            className="flex-1 bg-gradient-to-r from-accent to-violet text-[var(--bg)] font-semibold"
-            onClick={handleConnect}
-          >
-            Connect →
-          </Button>
-          <Button variant="secondary" onClick={handleTest} disabled={testing || !key.trim()}>
-            {testing ? 'Testing…' : 'Test'}
-          </Button>
+        <div className="mt-4 flex flex-col gap-2">
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 bg-gradient-to-r from-accent to-violet text-[var(--bg)] font-semibold"
+              onClick={handleConnect}
+            >
+              Save & use this provider
+            </Button>
+            <Button variant="secondary" onClick={handleTest} disabled={testing || !key.trim()}>
+              {testing ? 'Testing…' : 'Test'}
+            </Button>
+          </div>
+          {provider === 'auto' && (
+            <Button variant="secondary" size="sm" onClick={handleSaveKeyOnly} className="w-full">
+              Save key only (keep Auto)
+            </Button>
+          )}
         </div>
 
         {testResult === 'success' && (

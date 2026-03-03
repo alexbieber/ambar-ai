@@ -1,12 +1,20 @@
 import type { Project, ProjectFile } from '../types';
 import { zipSync } from 'fflate';
 
+/** Reject path traversal; only allow safe relative paths in ZIP. */
+function safeZipPath(path: string): string | null {
+  const p = path.replace(/\\/g, '/').replace(/^\.\/+/, '');
+  if (p.includes('..') || p.startsWith('/') || p.includes('\0')) return null;
+  return p || null;
+}
+
 export async function exportAsZip(project: Project): Promise<Blob> {
   const files: Record<string, Uint8Array> = {};
   const encoder = new TextEncoder();
 
   for (const [path, file] of Object.entries(project.files)) {
-    files[path] = encoder.encode(file.content);
+    const safe = safeZipPath(path);
+    if (safe) files[safe] = encoder.encode(file.content);
   }
 
   const readme = generateReadme(project);

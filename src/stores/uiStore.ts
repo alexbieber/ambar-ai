@@ -1,10 +1,11 @@
 import { create } from 'zustand';
+import type { NotificationType } from '../types';
 
 export interface Notification {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info' | 'warning';
-  createdAt: number;
+  type: NotificationType;
+  timestamp: number;
 }
 
 interface UiState {
@@ -62,7 +63,7 @@ export const useUiStore = create<UiState>((set) => ({
     const id = `n-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
     set((s) => ({
       notifications: [
-        { id, message, type, createdAt: Date.now() },
+        { id, message, type, timestamp: Date.now() },
         ...s.notifications.slice(0, 3),
       ],
     }));

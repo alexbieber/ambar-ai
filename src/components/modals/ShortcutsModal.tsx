@@ -11,6 +11,8 @@ const SHORTCUTS = [
   { keys: '⌘ S', desc: 'Copy active file' },
   { keys: '⌘ F', desc: 'Focus file search' },
   { keys: '⌘ W', desc: 'Close active tab' },
+  { keys: '⌘ Tab', desc: 'Next tab' },
+  { keys: '⌘ 1–9', desc: 'Switch to tab by number' },
   { keys: 'Escape', desc: 'Close modal / exit edit mode' },
 ];
 

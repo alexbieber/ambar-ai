@@ -8,11 +8,17 @@ const PORT = 3001;
 app.use(cors());
 app.use(express.json());
 
+function escapeForTemplate(str) {
+  if (typeof str !== 'string') return '';
+  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+}
+
 // Proxy endpoint for generating Flutter code
 app.post('/api/generate', async (req, res) => {
   const rawKey = req.body.apiKey;
   const apiKey = typeof rawKey === 'string' ? rawKey.trim() : '';
-  const { prompt, type = 'code', provider = 'anthropic', currentProject } = req.body;
+  const { prompt, type = 'code', provider = 'anthropic', currentProject, model } = req.body;
+  const safePrompt = escapeForTemplate(typeof prompt === 'string' ? prompt : '');
 
   if (!apiKey || !prompt) {
     return res.status(400).json({ error: 'API key and prompt are required' });
@@ -32,7 +38,7 @@ app.post('/api/generate', async (req, res) => {
 
 The user has an EXISTING Flutter project and wants to make CHANGES. Apply only what they ask; keep everything else the same.
 
-USER REQUEST: "${prompt}"
+USER REQUEST: "${safePrompt}"
 
 EXISTING PROJECT FILES (path and content):
 
@@ -42,7 +48,7 @@ Return the COMPLETE updated project in the same JSON format: {"files": {"path": 
       } else {
         content = `You must respond with a single valid JSON object. No markdown, no code fences, no text before or after. Start with {"files": and end with closing braces.
 
-Generate a Flutter mobile app (iOS/Android) for: "${prompt}"
+Generate a Flutter mobile app (iOS/Android) for: "${safePrompt}"
 
 MANDATORY PROJECT STRUCTURE (follow exactly):
 
@@ -95,7 +101,7 @@ Create a complete, standalone HTML page with inline CSS that shows EXACTLY what 
 
 Return ONLY the complete HTML document. Start with <!DOCTYPE html> or <html>. No markdown, no explanation.`;
     } else if (type === 'plan') {
-      content = `You are an expert Flutter developer. The user wants to build this mobile app (iOS/Android): "${prompt}"
+      content = `You are an expert Flutter developer. The user wants to build this mobile app (iOS/Android): "${safePrompt}"
 
 Reply with a short implementation plan only. Use bullet points. Include:
 1. App structure: lib/main.dart (only main + MaterialApp), lib/screens/ (one file per screen), lib/models/ if needed (e.g. Todo model for todo app)
@@ -109,9 +115,8 @@ Keep under 15 bullets. No code. No markdown. Plain bullet list.`;
     let response;
     
     if (provider === 'gemini') {
-      // Google Gemini API - using gemini-2.5-flash (fast and capable)
-      const model = 'gemini-2.5-flash';
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      const geminiModel = typeof model === 'string' && model ? model : 'gemini-2.5-flash';
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -131,7 +136,7 @@ Keep under 15 bullets. No code. No markdown. Plain bullet list.`;
         })
       });
     } else {
-      // Anthropic Claude API
+      const claudeModel = typeof model === 'string' && model ? model : 'claude-3-5-sonnet-20241022';
       response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -140,7 +145,7 @@ Keep under 15 bullets. No code. No markdown. Plain bullet list.`;
           'anthropic-version': '2023-06-01'
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: claudeModel,
           max_tokens: type === 'code' ? 8000 : type === 'plan' ? 1024 : 4000,
           messages: [{
             role: 'user',

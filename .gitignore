@@ -9,6 +9,11 @@ lerna-debug.log*
 
 node_modules
 dist
+
+# Environment / secrets (never commit API keys)
+.env
+.env.local
+.env.*.local
 dist-ssr
 *.local
 

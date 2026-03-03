@@ -149,7 +149,7 @@ export function PreviewPanel() {
                       key={blobUrl}
                       src={blobUrl}
                       title="Preview"
-                      sandbox="allow-scripts allow-same-origin"
+                      sandbox="allow-scripts"
                       className="border-0 bg-white block"
                       style={{
                         width: PREVIEW_CONTENT_WIDTH,
@@ -209,7 +209,7 @@ export function PreviewPanel() {
                       key={blobUrl}
                       src={blobUrl}
                       title="Preview fullscreen"
-                      sandbox="allow-scripts allow-same-origin"
+                      sandbox="allow-scripts"
                       className="border-0 bg-white block"
                       style={{
                         width: PREVIEW_CONTENT_WIDTH,

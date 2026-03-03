@@ -21,6 +21,8 @@ export function TopBar() {
 
   const isConnected = useAiStore((s) => s.isConnected);
   const provider = useAiStore((s) => s.provider);
+  const effectiveProvider = useAiStore((s) => s.getEffectiveProvider());
+  const effectiveModelId = useAiStore((s) => s.getEffectiveModelId());
   const setShowApiKeyModal = useUiStore((s) => s.setShowApiKeyModal);
   const setShowSettingsModal = useUiStore((s) => s.setShowSettingsModal);
   const setShowShortcutsModal = useUiStore((s) => s.setShowShortcutsModal);
@@ -95,7 +97,7 @@ export function TopBar() {
         {isConnected ? (
           <Tag variant="success" className="flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-            {provider === 'anthropic' ? 'Claude' : 'Gemini'}
+            {provider === 'auto' ? `Auto (${effectiveProvider === 'anthropic' ? 'Claude' : 'Gemini'})` : effectiveProvider === 'anthropic' ? 'Claude' : 'Gemini'}
           </Tag>
         ) : (
           <Button
@@ -108,9 +110,11 @@ export function TopBar() {
             Add API Key
           </Button>
         )}
-        <Tag variant="muted">
-          {provider === 'anthropic' ? 'claude-sonnet-4' : 'gemini-2.0-flash'}
-        </Tag>
+        <span title={effectiveModelId}>
+          <Tag variant="muted">
+            {effectiveModelId.replace(/^claude-|^gemini-/, '').slice(0, 20)}
+          </Tag>
+        </span>
         <ExportMenu />
         <button
           type="button"

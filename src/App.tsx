@@ -20,7 +20,7 @@ function App() {
 
   useEffect(() => {
     if (!apiKey?.trim()) setShowApiKeyModal(true);
-  }, []);
+  }, [apiKey, setShowApiKeyModal]);
 
   return (
     <ErrorBoundary>

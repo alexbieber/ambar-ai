@@ -6,14 +6,12 @@ import { Button } from '../ui/Button';
 import { Spinner } from '../ui/Spinner';
 import { Tag } from '../ui/Tag';
 import { EXAMPLE_PROMPTS } from '../../utils/constants';
-import { ChevronDown, ChevronUp, Send, AlertCircle, X, FileCode } from 'lucide-react';
+import { AlertCircle, X, FileCode } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export function Sidebar() {
   const [prompt, setPrompt] = useState('');
   const [enhanceInstruction, setEnhanceInstruction] = useState('');
-  const [chatInput, setChatInput] = useState('');
-  const [chatExpanded, setChatExpanded] = useState(false);
 
   const project = useProjectStore((s) => s.project);
   const history = useProjectStore((s) => s.history);
@@ -22,7 +20,6 @@ export function Sidebar() {
   const apiKey = useAiStore((s) => s.apiKey);
   const lastError = useAiStore((s) => s.lastError);
   const clearError = useAiStore((s) => s.clearError);
-  const chatHistory = useAiStore((s) => s.chatHistory);
   const currentStep = useAiStore((s) => s.currentStep);
   const progress = useAiStore((s) => s.progress);
   const streamingContent = useAiStore((s) => s.streamingContent);
@@ -48,6 +45,7 @@ export function Sidebar() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && e.metaKey) {
       e.preventDefault();
+      e.stopPropagation();
       handleGenerate();
     }
   };
@@ -267,54 +265,7 @@ export function Sidebar() {
           </div>
         )}
 
-        {/* Section 8: Chat (collapsible) */}
-        {project && (
-          <div className="border-t border-[var(--border)] pt-3">
-            <button
-              type="button"
-              onClick={() => setChatExpanded((e) => !e)}
-              className="w-full flex items-center justify-between text-[9px] uppercase tracking-wider text-[var(--muted)] hover:text-[var(--text)]"
-            >
-              <span>Ask Claude</span>
-              {chatExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-            </button>
-            {chatExpanded && (
-              <div className="mt-2 space-y-2">
-                <div className="max-h-[200px] overflow-y-auto space-y-2">
-                  {chatHistory.slice(-3).map((m) => (
-                    <div
-                      key={m.id}
-                      className={clsx(
-                        'text-xs p-2 rounded',
-                        m.role === 'user'
-                          ? 'bg-accent/10 text-accent ml-4'
-                          : 'bg-[var(--faint)] text-[var(--text)] mr-4'
-                      )}
-                    >
-                      {m.content.slice(0, 120)}…
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask about your project…"
-                    className="flex-1 px-2 py-1.5 rounded bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-accent"
-                  />
-                  <button
-                    type="button"
-                    className="p-1.5 rounded bg-accent/20 text-accent hover:bg-accent/30"
-                    title="Send"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Chat section hidden until backend is wired — Send had no handler */}
       </div>
     </aside>
   );

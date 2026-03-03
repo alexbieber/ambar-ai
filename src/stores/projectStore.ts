@@ -2,6 +2,28 @@ import { create } from 'zustand';
 import type { Project } from '../types';
 
 const HISTORY_MAX = 5;
+const HISTORY_KEY = 'flutterforge_history';
+
+function loadHistoryFromStorage(): Project[] {
+  if (typeof localStorage === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, HISTORY_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveHistoryToStorage(history: Project[]) {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
+  } catch {
+    // ignore quota or other errors
+  }
+}
 
 interface ProjectState {
   project: Project | null;
@@ -14,6 +36,7 @@ interface ProjectState {
   closeTab: (path: string) => void;
   updateFileContent: (path: string, content: string) => void;
   clearProject: () => void;
+  clearHistory: () => void;
   addToHistory: (project: Project) => void;
   loadFromHistory: (index: number) => void;
 }
@@ -22,7 +45,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   project: null,
   activeFilePath: null,
   openTabs: [],
-  history: [],
+  history: loadHistoryFromStorage(),
 
   setProject: (project) => {
     set({ project, activeFilePath: null, openTabs: [] });
@@ -75,10 +98,17 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   clearProject: () => set({ project: null, activeFilePath: null, openTabs: [] }),
 
+  clearHistory: () => {
+    set({ history: [] });
+    saveHistoryToStorage([]);
+  },
+
   addToHistory: (project) => {
-    set((s) => ({
-      history: [project, ...s.history.slice(0, HISTORY_MAX - 1)],
-    }));
+    set((s) => {
+      const next = [project, ...s.history.slice(0, HISTORY_MAX - 1)];
+      saveHistoryToStorage(next);
+      return { history: next };
+    });
   },
 
   loadFromHistory: (index) => {

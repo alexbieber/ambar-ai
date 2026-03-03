@@ -17,10 +17,12 @@ export function SettingsModal() {
   const setClaudeModel = useAiStore((s) => s.setClaudeModel);
   const setGeminiModel = useAiStore((s) => s.setGeminiModel);
 
+  const clearHistory = useProjectStore((s) => s.clearHistory);
+
   const handleClearAll = () => {
     clearAllKeys();
     clearProject();
-    useProjectStore.setState({ history: [] });
+    clearHistory();
     setShowSettingsModal(false);
     showNotification('All data cleared.', 'info');
   };

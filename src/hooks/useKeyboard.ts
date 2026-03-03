@@ -21,7 +21,7 @@ export function useKeyboard() {
   const { generate } = useGenerate();
 
   useEffect(() => {
-    const handle = (e: KeyboardEvent) => {
+    const handle = async (e: KeyboardEvent) => {
       const target = document.activeElement as HTMLElement;
       const isInput = target?.tagName === 'INPUT' || target?.tagName === 'TEXTAREA';
       const meta = e.metaKey || e.ctrlKey;
@@ -58,7 +58,7 @@ export function useKeyboard() {
         togglePreview();
         return;
       }
-      if (meta && e.key === 'Enter' && isInput) {
+      if (meta && e.key === 'Enter' && isInput && !e.defaultPrevented) {
         const textarea = target as HTMLTextAreaElement;
         if (textarea.value?.trim()) {
           e.preventDefault();
@@ -69,8 +69,12 @@ export function useKeyboard() {
       if (meta && e.key === 's') {
         e.preventDefault();
         if (project && activeFilePath && project.files[activeFilePath]) {
-          navigator.clipboard.writeText(project.files[activeFilePath].content);
-          useUiStore.getState().showNotification('Copied to clipboard', 'success');
+          try {
+            await navigator.clipboard.writeText(project.files[activeFilePath].content);
+            useUiStore.getState().showNotification('Copied to clipboard', 'success');
+          } catch {
+            useUiStore.getState().showNotification('Clipboard access denied or failed', 'error');
+          }
         }
         return;
       }

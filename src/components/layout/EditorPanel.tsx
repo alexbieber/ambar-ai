@@ -85,20 +85,27 @@ export function EditorPanel() {
     monaco.editor.setTheme('flutterforge-dark');
   }, []);
 
-  const handleCopyFile = () => {
-    if (activeFile) {
-      navigator.clipboard.writeText(activeFile.content);
+  const handleCopyFile = async () => {
+    if (!activeFile) return;
+    try {
+      await navigator.clipboard.writeText(activeFile.content);
       showNotification('Copied to clipboard', 'success');
+    } catch {
+      showNotification('Clipboard access denied or failed', 'error');
     }
   };
 
-  const handleCopyAll = () => {
+  const handleCopyAll = async () => {
     if (!project) return;
     const text = Object.entries(project.files)
       .map(([path, f]) => `// ${path}\n${f.content}`)
       .join('\n\n');
-    navigator.clipboard.writeText(text);
-    showNotification('All files copied', 'success');
+    try {
+      await navigator.clipboard.writeText(text);
+      showNotification('All files copied', 'success');
+    } catch {
+      showNotification('Clipboard access denied or failed', 'error');
+    }
   };
 
   const handleEditSubmit = () => {

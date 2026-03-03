@@ -11,7 +11,8 @@ const AUTO_DISMISS: Record<string, number> = {
 };
 
 export function NotificationStack() {
-  const { notifications, dismissNotification } = useUiStore();
+  const notifications = useUiStore((s) => s.notifications);
+  const dismissNotification = useUiStore((s) => s.dismissNotification);
 
   return (
     <div className="fixed top-4 right-4 z-50 flex flex-col gap-2 max-w-[340px]">
@@ -26,11 +27,11 @@ function NotificationItem({
   notification,
   onDismiss,
 }: {
-  notification: { id: string; message: string; type: 'success' | 'error' | 'info' | 'warning' };
+  notification: { id: string; message: string; type: string };
   onDismiss: () => void;
 }) {
   useEffect(() => {
-    const ms = AUTO_DISMISS[notification.type] ?? 3000;
+    const ms = (AUTO_DISMISS as Record<string, number>)[notification.type] ?? 3000;
     const t = setTimeout(onDismiss, ms);
     return () => clearTimeout(t);
   }, [notification.id, notification.type, onDismiss]);

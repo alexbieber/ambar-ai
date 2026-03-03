@@ -197,7 +197,10 @@ export function useGenerate() {
 
   const editFile = useCallback(
     async (path: string, instruction: string) => {
-      if (!apiKey || !project?.files[path]) return;
+      const state = useAiStore.getState();
+      const effectiveKey = state.getEffectiveApiKey();
+      const effectiveProvider = state.getEffectiveProvider();
+      if (!effectiveKey || !project?.files[path]) return;
       const target = project.files[path];
       const context = Object.entries(project.files)
         .filter(([p]) => p !== path)
@@ -207,10 +210,10 @@ export function useGenerate() {
       setLoading(true);
       clearError();
       const accumulated = { current: '' };
-      const ai = provider === 'anthropic' ? claude : gemini;
+      const ai = effectiveProvider === 'anthropic' ? claude : gemini;
       try {
         const newContent = await ai.editFile({
-          apiKey,
+          apiKey: effectiveKey,
           instruction,
           targetFile: target,
           projectContext: context,
@@ -229,7 +232,7 @@ export function useGenerate() {
           setLoading(false);
       }
     },
-    [apiKey, provider, anthropicApiKey, project, updateFileContent, setLoading, setLastError, clearError, showNotification]
+    [project, updateFileContent, setLoading, setLastError, clearError, showNotification]
   );
 
   const regeneratePreview = useCallback(async () => {

@@ -25,13 +25,16 @@ export function ExportMenu() {
 
   if (!project) return null;
 
+  const safeZipName = (name: string) =>
+    name.replace(/\s+/g, '-').replace(/[^\w.-]/g, '') || 'flutter-project';
+
   const handleZip = async () => {
     try {
       const blob = await exportAsZip(project);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${project.name.replace(/\s+/g, '-')}.zip`;
+      a.download = `${safeZipName(project.name)}.zip`;
       a.click();
       URL.revokeObjectURL(url);
       showNotification('Project downloaded as ZIP', 'success');
@@ -41,19 +44,27 @@ export function ExportMenu() {
     }
   };
 
-  const handleCopyPubspec = () => {
+  const handleCopyPubspec = async () => {
     const f = project.files['pubspec.yaml'];
     if (f) {
-      navigator.clipboard.writeText(f.content);
-      showNotification('pubspec.yaml copied', 'success');
+      try {
+        await navigator.clipboard.writeText(f.content);
+        showNotification('pubspec.yaml copied', 'success');
+      } catch {
+        showNotification('Clipboard access denied or failed', 'error');
+      }
     }
     setOpen(false);
   };
 
-  const handleCopyAll = () => {
+  const handleCopySummary = async () => {
     const text = copyProjectSummary(project);
-    navigator.clipboard.writeText(text);
-    showNotification('Project summary copied', 'success');
+    try {
+      await navigator.clipboard.writeText(text);
+      showNotification('Project summary copied', 'success');
+    } catch {
+      showNotification('Clipboard access denied or failed', 'error');
+    }
     setOpen(false);
   };
 
@@ -100,11 +111,11 @@ export function ExportMenu() {
           </button>
           <button
             type="button"
-            onClick={handleCopyAll}
+            onClick={handleCopySummary}
             className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
           >
             <Copy className="w-4 h-4" />
-            Copy all files
+            Copy project summary
           </button>
           <button
             type="button"

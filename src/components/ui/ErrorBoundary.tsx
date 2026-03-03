@@ -19,7 +19,9 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('FlutterForge ErrorBoundary:', error, errorInfo);
+    if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.error('FlutterForge ErrorBoundary:', error, errorInfo);
+    }
   }
 
   render() {

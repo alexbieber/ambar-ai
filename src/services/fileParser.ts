@@ -1,6 +1,13 @@
 import type { ProjectFile, FileNode } from '../types';
 import { SUPPORTED_LANGUAGES } from '../utils/constants';
 
+/** Reject path traversal and absolute paths; normalize slashes. Returns null if unsafe. */
+function sanitizeFilePath(path: string): string | null {
+  const p = path.trim().replace(/\\/g, '/').replace(/^\.\/+/, '');
+  if (p.includes('..') || p.startsWith('/') || p.includes('\0')) return null;
+  return p || null;
+}
+
 /**
  * Extracts XML from response: strip markdown fences and leading/trailing text.
  */
@@ -59,8 +66,9 @@ export function parseProjectXML(raw: string): Record<string, string> {
         .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'");
-      const normalized = path.endsWith('.dart') && !path.startsWith('lib/') ? 'lib/' + path : path;
-      out[normalized] = content;
+      let normalized = path.endsWith('.dart') && !path.startsWith('lib/') ? 'lib/' + path : path;
+      const safe = sanitizeFilePath(normalized);
+      if (safe) out[safe] = content;
     };
     let match: RegExpExecArray | null;
     while ((match = pathRegex.exec(xml)) !== null) extractContent(xml, match);
@@ -91,7 +99,7 @@ export function parseProjectXML(raw: string): Record<string, string> {
       }
     }
 
-    if (Object.keys(out).length === 0) {
+    if (Object.keys(out).length === 0 && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
       const preview = raw.length > 1800 ? raw.slice(0, 1800) + '…' : raw;
       console.warn(
         '[FlutterForge] No project files parsed. Raw response length:',
@@ -230,8 +238,11 @@ function parseMarkdownCodeBlocks(raw: string): Record<string, string> {
     if (path && content) {
       path = path.replace(/^\.\//, '');
       if (!path.startsWith('lib/') && path.endsWith('.dart')) path = 'lib/' + path;
-      if (out[path]) path = path.replace(/\.(dart|yaml)$/, `_${Object.keys(out).length}.$1`);
-      out[path] = content;
+      const safe = sanitizeFilePath(path);
+      if (!safe) continue;
+      const finalPath = out[safe] ? safe.replace(/\.(dart|yaml)$/, `_${Object.keys(out).length}.$1`) : safe;
+      const safeFinal = sanitizeFilePath(finalPath);
+      if (safeFinal) out[safeFinal] = content;
     }
   }
   return out;

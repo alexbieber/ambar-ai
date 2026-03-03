@@ -171,10 +171,10 @@ export interface Notification {
   id: string;
   type: NotificationType;
   message: string;
+  timestamp: number;
   detail?: string;
   agentColor?: string;
   duration?: number;
-  timestamp: number;
 }
 
 // ── General ───────────────────────────────────────────────────

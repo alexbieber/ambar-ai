@@ -249,7 +249,6 @@ async function readStreamResponse(
     for (const line of lines) {
       processChunk(line);
     }
-    processChunk(buffer);
   }
   if (buffer.trim()) {
     processChunk(buffer);

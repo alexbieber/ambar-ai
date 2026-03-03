@@ -159,6 +159,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ code, onCopy, fileName = 'main.
                         : ''
                     }`}
                     dangerouslySetInnerHTML={{ __html: line.content || '&nbsp;' }}
+                    title="Rendered after escapeHtml + highlightLine (safe)"
                   />
                 ))}
               </code>
