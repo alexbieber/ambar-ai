@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useProjectStore } from '../../stores/projectStore';
 import { useUiStore } from '../../stores/uiStore';
 import {
@@ -13,12 +14,29 @@ export function ExportMenu() {
   const showNotification = useUiStore((s) => s.showNotification);
   const setActiveRightTab = useUiStore((s) => s.setActiveRightTab);
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [position, setPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open || !buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.bottom + 4,
+      right: window.innerWidth - rect.right,
+    });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
     const onOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      if (
+        buttonRef.current?.contains(target) ||
+        menuRef.current?.contains(target)
+      )
+        return;
+      setOpen(false);
     };
     window.addEventListener('mousedown', onOutside);
     return () => window.removeEventListener('mousedown', onOutside);
@@ -83,9 +101,75 @@ export function ExportMenu() {
     setOpen(false);
   };
 
-  return (
-    <div className="relative" ref={ref}>
+  const dropdown = open && (
+    <div
+      ref={menuRef}
+      className="fixed py-1 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl min-w-[200px] z-[9999]"
+      style={{
+        top: position.top,
+        right: position.right,
+        left: 'auto',
+      }}
+    >
       <button
+        type="button"
+        onClick={handleZip}
+        className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+      >
+        <FileCode className="w-4 h-4" />
+        Download as ZIP
+      </button>
+      <button
+        type="button"
+        onClick={handleCopyPubspec}
+        className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+      >
+        <Copy className="w-4 h-4" />
+        Copy pubspec.yaml
+      </button>
+      <button
+        type="button"
+        onClick={handleCopySummary}
+        className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+      >
+        <Copy className="w-4 h-4" />
+        Copy project summary
+      </button>
+      <button
+        type="button"
+        onClick={handleDownloadReadme}
+        className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+      >
+        <FileText className="w-4 h-4" />
+        Download README
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          setActiveRightTab('howto');
+          setOpen(false);
+        }}
+        className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
+      >
+        <BookOpen className="w-4 h-4" />
+        How to run
+      </button>
+      <div className="border-t border-[var(--border)] my-1" />
+      <button
+        type="button"
+        disabled
+        className="w-full px-3 py-2 text-left text-sm text-[var(--muted)] flex items-center gap-2 cursor-not-allowed"
+      >
+        Share project
+        <span className="text-[9px] bg-[var(--faint)] px-1 rounded">Coming soon</span>
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      <button
+        ref={buttonRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="p-2 rounded text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-1 text-sm"
@@ -93,62 +177,9 @@ export function ExportMenu() {
         <Download className="w-4 h-4" />
         Export
       </button>
-      {open && (
-        <div className="absolute bottom-full right-0 mb-1 py-1 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl min-w-[200px] z-[100]">
-          <button
-            type="button"
-            onClick={handleZip}
-            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
-          >
-            <FileCode className="w-4 h-4" />
-            Download as ZIP
-          </button>
-          <button
-            type="button"
-            onClick={handleCopyPubspec}
-            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
-          >
-            <Copy className="w-4 h-4" />
-            Copy pubspec.yaml
-          </button>
-          <button
-            type="button"
-            onClick={handleCopySummary}
-            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
-          >
-            <Copy className="w-4 h-4" />
-            Copy project summary
-          </button>
-          <button
-            type="button"
-            onClick={handleDownloadReadme}
-            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
-          >
-            <FileText className="w-4 h-4" />
-            Download README
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setActiveRightTab('howto');
-              setOpen(false);
-            }}
-            className="w-full px-3 py-2 text-left text-sm text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-2"
-          >
-            <BookOpen className="w-4 h-4" />
-            How to run
-          </button>
-          <div className="border-t border-[var(--border)] my-1" />
-          <button
-            type="button"
-            disabled
-            className="w-full px-3 py-2 text-left text-sm text-[var(--muted)] flex items-center gap-2 cursor-not-allowed"
-          >
-            Share project
-            <span className="text-[9px] bg-[var(--faint)] px-1 rounded">Coming soon</span>
-          </button>
-        </div>
-      )}
-    </div>
+      {typeof document !== 'undefined' && dropdown
+        ? createPortal(dropdown, document.body)
+        : null}
+    </>
   );
 }
