@@ -18,14 +18,15 @@ export function ExportMenu() {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (!open || !buttonRef.current) return;
+  const openMenu = () => {
+    if (!buttonRef.current) return;
     const rect = buttonRef.current.getBoundingClientRect();
     setPosition({
       top: rect.bottom + 4,
       right: window.innerWidth - rect.right,
     });
-  }, [open]);
+    setOpen(true);
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -110,6 +111,7 @@ export function ExportMenu() {
         right: position.right,
         left: 'auto',
       }}
+      onMouseDown={(e) => e.stopPropagation()}
     >
       <button
         type="button"
@@ -171,7 +173,10 @@ export function ExportMenu() {
       <button
         ref={buttonRef}
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        onClick={(e) => {
+          e.stopPropagation();
+          open ? setOpen(false) : openMenu();
+        }}
         className="p-2 rounded text-[var(--muted)] hover:text-[var(--text)] hover:bg-[var(--faint)] flex items-center gap-1 text-sm"
       >
         <Download className="w-4 h-4" />
