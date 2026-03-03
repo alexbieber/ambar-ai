@@ -14,7 +14,7 @@ interface UiState {
   previewWidth: number;
   showPreview: boolean;
   showExplorer: boolean;
-  activeRightTab: 'code' | 'howto';
+  activeRightTab: 'code' | 'howto' | 'plan';
   theme: 'dark';
   showApiKeyModal: boolean;
   showSettingsModal: boolean;
@@ -26,7 +26,7 @@ interface UiState {
   setPreviewWidth: (w: number) => void;
   togglePreview: () => void;
   toggleExplorer: () => void;
-  setActiveRightTab: (tab: 'code' | 'howto') => void;
+  setActiveRightTab: (tab: 'code' | 'howto' | 'plan') => void;
   showNotification: (message: string, type: Notification['type']) => void;
   dismissNotification: (id: string) => void;
   setShowApiKeyModal: (v: boolean) => void;

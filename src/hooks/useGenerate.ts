@@ -97,7 +97,7 @@ export function useGenerate() {
         setStep(`Sending prompt to ${providerName}…`, 8);
 
         const ai = effectiveProvider === 'anthropic' ? claude : gemini;
-        const filesRecord = await ai.generateProject({
+        const { files: filesRecord, planMarkdown } = await ai.generateProject({
           apiKey: effectiveKey.trim(),
           prompt,
           model: modelId,
@@ -165,6 +165,7 @@ export function useGenerate() {
           previewHtml,
           previewSource: 'description',
           generatedByProvider,
+          planMarkdown: planMarkdown || undefined,
         };
 
         setProject(proj);

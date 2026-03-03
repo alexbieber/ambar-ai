@@ -155,6 +155,8 @@ export interface Project {
   /** Whether preview was generated from app description or from current code */
   previewSource?: PreviewSource;
   generatedByProvider: ProviderId;
+  /** Plan/spec generated before code (plan-then-build flow); shown in Plan tab */
+  planMarkdown?: string;
 }
 
 // ── File Tree ──────────────────────────────────────────────────

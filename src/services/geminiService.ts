@@ -4,6 +4,7 @@ import {
   MAX_TOKENS_PREVIEW,
   MAX_TOKENS_EDIT,
   FLUTTER_SYSTEM_PROMPT,
+  GENERATE_WITH_PLAN_SYSTEM_PROMPT,
   ENHANCE_SYSTEM_PROMPT,
   ENHANCE_MAX_TOTAL_CHARS,
   ENHANCE_MAX_PER_FILE,
@@ -13,7 +14,7 @@ import {
   EDIT_SYSTEM_PROMPT,
 } from '../utils/constants';
 import { getChatSystemPrompt } from '../agent/prompts';
-import { parseProjectXML, getParseFailurePreview, ensureCriticalFiles } from './fileParser';
+import { parseProjectXML, parsePlanAndProject, getParseFailurePreview, ensureCriticalFiles } from './fileParser';
 import { wrapPreviewHtml } from './previewGenerator';
 import type { Project, ProjectFile, ChatMessage } from '../types';
 import { APIError } from './claudeService';
@@ -277,15 +278,15 @@ export async function generateProject(params: {
   onRetryWait?: (message: string) => void;
   skipRetryWait?: boolean;
   onParseFailure?: (raw: string) => void;
-}): Promise<Record<string, string>> {
+}): Promise<{ files: Record<string, string>; planMarkdown?: string }> {
   const { apiKey, prompt, model, onProgress, onStreamChunk, onRetryWait, skipRetryWait, onParseFailure } = params;
-  onProgress?.('Sending prompt to API…', 10);
+  onProgress?.('Planning & generating (one pass)…', 10);
   let received = 0;
   let lastReported = 0;
   let fullText = await streamCompletion({
     apiKey,
     model,
-    system: FLUTTER_SYSTEM_PROMPT,
+    system: GENERATE_WITH_PLAN_SYSTEM_PROMPT,
     messages: [{ role: 'user', content: prompt }],
     maxTokens: MAX_TOKENS_PROJECT,
     onChunk: (chunk) => {
@@ -294,7 +295,7 @@ export async function generateProject(params: {
       if (received - lastReported >= 2000 || received < 500) {
         lastReported = received;
         const pct = 10 + Math.min(45, (received / 80000) * 45);
-        onProgress?.(`Streaming source code… ${(received / 1024).toFixed(1)}k chars`, pct);
+        onProgress?.(`Streaming… ${(received / 1024).toFixed(1)}k chars`, pct);
       }
     },
     onRetryWait,
@@ -306,24 +307,26 @@ export async function generateProject(params: {
     fullText = await generateContentNonStreaming({
       apiKey,
       model,
-      system: FLUTTER_SYSTEM_PROMPT,
+      system: GENERATE_WITH_PLAN_SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
       maxTokens: MAX_TOKENS_PROJECT,
     });
     if (fullText) onStreamChunk?.(fullText);
   }
 
-  onProgress?.('Parsing XML response…', 58);
-  let files = parseProjectXML(fullText);
+  onProgress?.('Parsing plan & project…', 58);
+  const { planMarkdown, projectXML } = parsePlanAndProject(fullText ?? '');
+  let files = parseProjectXML(projectXML);
+  if (Object.keys(files).length === 0) files = parseProjectXML(fullText ?? '');
   if (Object.keys(files).length === 0 && fullText.trim().length > 200) {
-    onProgress?.('Parse failed, retrying with stricter prompt…', 55);
+    onProgress?.('Parse failed, retrying with XML-only prompt…', 55);
     const repairText = await streamCompletion({
       apiKey,
       model,
       system: FLUTTER_SYSTEM_PROMPT + '\n\nCRITICAL: Your response must be ONLY the <project>...</project> XML. No preamble, no explanation, no markdown.',
       messages: [
         { role: 'user', content: prompt },
-        { role: 'assistant', content: fullText },
+        { role: 'assistant', content: fullText ?? '' },
         { role: 'user', content: 'Re-output only the <project>...</project> XML block from your previous response, with no other text.' },
       ],
       maxTokens: MAX_TOKENS_PROJECT,
@@ -337,7 +340,7 @@ export async function generateProject(params: {
     if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
       console.warn('[FlutterForge] generateProject parse failed', { responseLength: fullText?.length ?? 0 });
     }
-    const preview = getParseFailurePreview(fullText);
+    const preview = getParseFailurePreview(fullText ?? '');
     const isEmpty = !preview || preview.startsWith('(empty');
     const mainMsg =
       isEmpty
@@ -346,7 +349,7 @@ export async function generateProject(params: {
     throw new APIError(mainMsg + (preview && !isEmpty ? `\n\nResponse preview:\n${preview}` : ''));
   }
   onProgress?.(`Parsed ${Object.keys(files).length} files`, 60);
-  return ensureCriticalFiles(files);
+  return { files: ensureCriticalFiles(files), planMarkdown: planMarkdown || undefined };
 }
 
 function buildEnhanceUserMessage(description: string, instruction: string, files: Record<string, string>): string {
@@ -373,7 +376,7 @@ function buildEnhanceUserMessage(description: string, instruction: string, files
   const truncNote = hadTruncation
     ? '\n\nNote: Some file contents above were truncated due to length limits; preserve structure and only modify what you can see.'
     : '';
-  return `Current app description:\n${descCapped}\n\nUser wants to make these changes:\n${instruction}\n\nCurrent project files (output the FULL updated project in XML after this):\n${fileBlocks.join('\n')}${truncNote}`;
+  return `Current app description:\n${descCapped}\n\nUser's enhancement request (apply ONLY this; leave all other code unchanged):\n${instruction}\n\nCurrent project files. For any file you do not need to change, output its content exactly as below. Output the full project in XML:\n${fileBlocks.join('\n')}${truncNote}`;
 }
 
 export async function enhanceProject(params: {

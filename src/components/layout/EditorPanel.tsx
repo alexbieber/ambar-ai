@@ -6,7 +6,7 @@ import { useGenerate } from '../../hooks/useGenerate';
 import { getFileIcon } from '../../utils/fileIcons';
 import { getLanguageForPath } from '../../utils/syntaxColors';
 import { Button } from '../ui/Button';
-import { Copy, BookOpen, Code, X, Send } from 'lucide-react';
+import { Copy, BookOpen, Code, X, Send, FileText } from 'lucide-react';
 import { clsx } from 'clsx';
 
 const FLUTTERFORGE_THEME = {
@@ -162,6 +162,26 @@ export function EditorPanel() {
     );
   }
 
+  if (activeRightTab === 'plan' && project.planMarkdown) {
+    return (
+      <div className="h-full flex flex-col bg-[var(--surface)] overflow-hidden">
+        <div className="px-3 py-2 border-b border-[var(--border)] flex items-center justify-between">
+          <span className="text-[9px] uppercase tracking-wider text-[var(--muted)]">App Plan</span>
+          <button
+            type="button"
+            onClick={() => setActiveRightTab('code')}
+            className="p-1.5 rounded text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-auto p-4">
+          <pre className="text-sm text-[var(--text)] whitespace-pre-wrap font-sans">{project.planMarkdown}</pre>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-col bg-[var(--surface)] overflow-hidden">
       {/* Tabs */}
@@ -206,10 +226,27 @@ export function EditorPanel() {
           })}
         </div>
         <div className="flex items-center gap-1 pr-2 border-l border-[var(--border)] pl-2">
+          {project.planMarkdown && (
+            <button
+              type="button"
+              onClick={() => setActiveRightTab('plan')}
+              className={clsx(
+                'p-2 rounded text-xs flex items-center gap-1',
+                activeRightTab === 'plan' ? 'bg-accent/20 text-accent' : 'text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]'
+              )}
+              title="App plan (generated before code)"
+            >
+              <FileText className="w-4 h-4" />
+              Plan
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setActiveRightTab('howto')}
-            className="p-2 rounded text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)] text-xs flex items-center gap-1"
+            className={clsx(
+              'p-2 rounded text-xs flex items-center gap-1',
+              activeRightTab === 'howto' ? 'bg-accent/20 text-accent' : 'text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]'
+            )}
           >
             <BookOpen className="w-4 h-4" />
             How to Run

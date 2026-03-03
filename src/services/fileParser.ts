@@ -9,6 +9,29 @@ function sanitizeFilePath(path: string): string | null {
 }
 
 /**
+ * Splits a plan-then-build response into markdown plan and project XML.
+ * Plan is everything before <project> or <file; XML is from <project> to </project>.
+ */
+export function parsePlanAndProject(raw: string): { planMarkdown: string; projectXML: string } {
+  const s = raw.trim();
+  const projectStart = s.indexOf('<project>');
+  const fileStart = s.indexOf('<file');
+  const xmlStart =
+    projectStart === -1 && fileStart === -1
+      ? -1
+      : Math.min(
+          projectStart === -1 ? s.length : projectStart,
+          fileStart === -1 ? s.length : fileStart
+        );
+  const planMarkdown =
+    xmlStart <= 0 ? '' : s.slice(0, xmlStart).replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
+  let projectXML = xmlStart < 0 ? s : s.slice(xmlStart);
+  const projectEnd = projectXML.indexOf('</project>');
+  if (projectEnd !== -1) projectXML = projectXML.slice(0, projectEnd + '</project>'.length);
+  return { planMarkdown, projectXML };
+}
+
+/**
  * Extracts XML from response: strip markdown fences and leading/trailing text.
  */
 function extractProjectXML(raw: string): string {
