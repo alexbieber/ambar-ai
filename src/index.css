@@ -1,0 +1,104 @@
+/* Fonts loaded via <link> in index.html to avoid @import order issues */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* FlutterForge IDE — CSS variables */
+:root {
+  --bg: #05050d;
+  --surface: #0b0b17;
+  --panel: #0e0e1c;
+  --border: #161628;
+  --accent: #00f0ff;
+  --violet: #7c3aed;
+  --amber: #f59e0b;
+  --text: #c4c4e0;
+  --muted: #4a4a72;
+  /* Agent color CSS variables */
+  --agent-0: #00f0ff;
+  --agent-1: #7c3aed;
+  --agent-2: #f59e0b;
+  --agent-3: #f472b6;
+  --agent-4: #00ffaa;
+  --agent-5: #fb923c;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+  html, body, #root {
+    height: 100%;
+    margin: 0;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom scrollbar: 4px, dark track, accent on hover */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) var(--surface);
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) var(--surface);
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: var(--surface);
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--accent);
+  }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes progressPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+@keyframes gentleGlow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.15); }
+  50% { box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.35), 0 0 20px rgba(124, 58, 237, 0.1); }
+}

@@ -1,0 +1,2 @@
+// Coordinates multiple agents
+export {};
