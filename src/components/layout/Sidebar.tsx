@@ -72,7 +72,7 @@ export function Sidebar() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe your Flutter app in detail…&#10;&#10;Be specific about screens,&#10;features, and design style."
+            placeholder="e.g. Todo app, Instagram clone, Recipe browser, Twitter clone…&#10;&#10;We plan all screens and requirements, then build a fully functional app with Unsplash images."
             rows={7}
             className="w-full px-3 py-2 rounded-lg bg-[var(--surface)] border border-[var(--border)] text-[var(--text)] font-mono text-xs resize-none focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
           />

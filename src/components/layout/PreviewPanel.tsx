@@ -109,7 +109,7 @@ export function PreviewPanel() {
           <span className="text-[9px] uppercase tracking-wider text-[var(--muted)]">Live Preview</span>
           {previewSource && (
             <Tag variant="muted" className="text-[9px]">
-              {previewSource === 'code' ? 'From code' : 'From description'}
+              {previewSource === 'code' ? 'From code' : previewSource === 'one_call' ? 'One-call · Use "From code" for preview' : 'From description'}
             </Tag>
           )}
         </div>

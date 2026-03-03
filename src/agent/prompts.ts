@@ -5,6 +5,8 @@
 
 import {
   IDENTITY,
+  SHORT_PROMPT_RULE,
+  CLONE_APP_RULE,
   OUTPUT_XML_ONLY,
   PROJECT_STRUCTURE,
   CODE_QUALITY,
@@ -26,7 +28,7 @@ import {
 
 /** Full project generation from a single user description. */
 export const FLUTTER_SYSTEM_PROMPT = `${IDENTITY}
-Generate a COMPLETE, multi-file Flutter project from a single user description.
+Generate a COMPLETE, fully functional multi-file Flutter app from the user's description (short prompts are fine — expand into a full app with Unsplash demo images).
 
 ${OUTPUT_XML_ONLY}
 
@@ -40,9 +42,13 @@ ${IMAGES_UNSPLASH}
 
 ${BEHAVIOR_GUARD}`;
 
-/** Plan-then-build: one response = markdown spec + project XML. Fully interactive app. */
+/** Plan-then-build: one response = markdown spec + project XML. Fully interactive app from short prompts or "X clone", with Unsplash demo images. */
 export const GENERATE_WITH_PLAN_SYSTEM_PROMPT = `${IDENTITY}
-Generate a COMPLETE, multi-file Flutter project from the user's app description. First plan (markdown), then implement (XML). The app must be fully interactive — every button and action must work.
+Generate a COMPLETE, fully functional Flutter app from the user's prompt. If they say "Instagram clone", "Twitter clone", or "app like X", plan ALL screens and requirements for that product, then implement every one. For short prompts (e.g. "todo app"), expand into a full app. First plan (markdown), then implement (XML). The app must be fully interactive and include Unsplash demo images.
+
+${SHORT_PROMPT_RULE}
+
+${CLONE_APP_RULE}
 
 ${PLAN_THEN_BUILD}
 

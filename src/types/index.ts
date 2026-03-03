@@ -143,7 +143,7 @@ export interface ProjectFile {
   lastEditedByProvider: ProviderId | null;
 }
 
-export type PreviewSource = 'description' | 'code';
+export type PreviewSource = 'description' | 'code' | 'one_call';
 
 export interface Project {
   id: string;

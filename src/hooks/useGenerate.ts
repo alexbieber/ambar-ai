@@ -27,9 +27,12 @@ const STEPS: GenerationStep[] = [
   { id: '1', label: 'Initializing project architecture', status: 'pending' },
   { id: '2', label: 'Generating Flutter source files', status: 'pending' },
   { id: '3', label: 'Parsing project structure', status: 'pending' },
-  { id: '4', label: 'Rendering live preview', status: 'pending' },
-  { id: '5', label: 'Finalizing', status: 'pending' },
+  { id: '4', label: 'Finalizing', status: 'pending' },
+  { id: '5', label: 'Complete', status: 'pending' },
 ];
+
+/** Placeholder shown after plan-then-build (one API call). User can use "Regenerate from code" for HTML preview. */
+const ONE_CALL_PLACEHOLDER_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390,height=760"><style>body{margin:0;padding:24px;background:#0e0e1c;color:#9ca3af;font-family:system-ui,sans-serif;font-size:14px;line-height:1.5;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:760px;box-sizing:border-box}.badge{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:16px}h1{color:#e5e7eb;font-size:18px;margin:0 0 8px;text-align:center}p{margin:0 0 12px;text-align:center;max-width:320px}.muted{color:#6b7280;font-size:12px;margin-top:24px}</style></head><body><span class="badge">Plan-then-build · One API call</span><h1>App generated</h1><p>Your interactive Flutter app was built in a single request. Use <strong>Regenerate from code</strong> in the Preview panel to generate an HTML preview from your Dart code.</p><p class="muted">Or export the project and run it with Flutter.</p></body></html>`;
 
 function createProjectFile(path: string, content: string): ProjectFile {
   return {
@@ -132,27 +135,14 @@ export function useGenerate() {
         });
 
         updateStepStatus('3', 'done', `${sortedPaths.length} files created`);
-        updateStepStatus('4', 'running', 'Calling API…');
-        setStep('Rendering live preview…', 70);
+        updateStepStatus('4', 'running', 'Finalizing…');
+        setStep('Finalizing (one API call)…', 70);
 
-        let previewHtml = '';
-        try {
-          previewHtml = await ai.generatePreview({
-            apiKey: effectiveKey.trim(),
-            prompt,
-            model: modelId,
-            onProgress: (step) => {
-              setStep(step, 72);
-              updateStepStatus('4', 'running', step);
-            },
-          });
-        } catch (e) {
-          setStep('Preview failed, using placeholder', 78);
-          updateStepStatus('4', 'running', 'Preview failed, using placeholder');
-          previewHtml = '<!DOCTYPE html><html><body style="background:#0e0e1c;color:#888;font-family:monospace;padding:16px;">Preview could not be generated.</body></html>';
-        }
+        // Plan-then-build: one API call only. No separate preview call; use placeholder.
+        // User can click "Regenerate from code" in Preview panel to get an HTML preview later if desired.
+        const previewHtml = ONE_CALL_PLACEHOLDER_HTML;
 
-        updateStepStatus('4', 'done', 'Preview ready');
+        updateStepStatus('4', 'done', 'Done');
         updateStepStatus('5', 'running', 'Writing to project…');
         setStep('Finalizing project…', 92);
 
@@ -164,7 +154,7 @@ export function useGenerate() {
           files,
           createdAt: Date.now(),
           previewHtml,
-          previewSource: 'description',
+          previewSource: 'one_call',
           generatedByProvider,
           planMarkdown: planMarkdown || undefined,
         };
