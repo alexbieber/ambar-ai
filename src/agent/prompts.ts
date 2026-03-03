@@ -11,6 +11,8 @@ import {
   DESIGN_RULES,
   INTERACTIVITY_RULES,
   PLAN_THEN_BUILD,
+  PLAN_IMPLEMENTATION_MANDATE,
+  IMAGES_UNSPLASH,
   ENHANCE_IDENTITY,
   ENHANCE_INPUT,
   ENHANCE_OUTPUT,
@@ -34,6 +36,8 @@ ${CODE_QUALITY}
 
 ${DESIGN_RULES}
 
+${IMAGES_UNSPLASH}
+
 ${BEHAVIOR_GUARD}`;
 
 /** Plan-then-build: one response = markdown spec + project XML. Fully interactive app. */
@@ -42,6 +46,8 @@ Generate a COMPLETE, multi-file Flutter project from the user's app description.
 
 ${PLAN_THEN_BUILD}
 
+${PLAN_IMPLEMENTATION_MANDATE}
+
 ${PROJECT_STRUCTURE}
 
 ${CODE_QUALITY}
@@ -49,6 +55,8 @@ ${CODE_QUALITY}
 ${INTERACTIVITY_RULES}
 
 ${DESIGN_RULES}
+
+${IMAGES_UNSPLASH}
 
 Output rules: Your response must start with the markdown spec (no code fences around it). After a blank line, output only the <project>...</project> XML. No other text after the XML. First character of your response should be # or <. ${BEHAVIOR_GUARD}`;
 

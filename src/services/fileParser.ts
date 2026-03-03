@@ -26,7 +26,7 @@ export function parsePlanAndProject(raw: string): { planMarkdown: string; projec
   const planMarkdown =
     xmlStart <= 0 ? '' : s.slice(0, xmlStart).replace(/^```(?:markdown|md)?\s*\n?/i, '').replace(/\n?```\s*$/, '').trim();
   let projectXML = xmlStart < 0 ? s : s.slice(xmlStart);
-  const projectEnd = projectXML.indexOf('</project>');
+  const projectEnd = projectXML.lastIndexOf('</project>');
   if (projectEnd !== -1) projectXML = projectXML.slice(0, projectEnd + '</project>'.length);
   return { planMarkdown, projectXML };
 }
@@ -66,41 +66,64 @@ function extractProjectXML(raw: string): string {
 
 /**
  * Parses <project><file path="...">content</file></project> XML.
- * Tolerates markdown fences, extra text, single/double quotes, newlines in tags.
- * Returns empty object if no valid files; never throws.
+ * Content is taken up to the next <file or </project> so that literal </file> inside
+ * file content (e.g. in strings) does not break multi-file parsing.
  */
 export function parseProjectXML(raw: string): Record<string, string> {
   const out: Record<string, string> = {};
   try {
     const xml = extractProjectXML(raw);
-    const closeTag = '</file>';
-    // Match <file ... path="..." ...> or path='...' (path/filename/name attribute, case-insensitive)
     const pathRegex =
       /<file[\s\S]*?(?:path|filename|name)\s*=\s*["']([^"']+)["'][\s\S]*?>/gi;
-    const extractContent = (text: string, match: RegExpExecArray): void => {
-      const path = match[1].trim();
-      const start = match.index + match[0].length;
-      const end = text.indexOf(closeTag, start);
-      if (end === -1) return;
-      let content = text.slice(start, end).replace(/^<!\[CDATA\[|\]\]>$/g, '').trim();
+    const matches: { path: string; contentStart: number; tagStart: number }[] = [];
+    let m: RegExpExecArray | null;
+    while ((m = pathRegex.exec(xml)) !== null) {
+      matches.push({ path: m[1].trim(), contentStart: m.index + m[0].length, tagStart: m.index });
+    }
+    for (let i = 0; i < matches.length; i++) {
+      const { path, contentStart } = matches[i];
+      const nextTagStart = i + 1 < matches.length ? matches[i + 1].tagStart : xml.length;
+      const endProject = xml.indexOf('</project>', contentStart);
+      const contentEnd = endProject === -1 ? nextTagStart : Math.min(nextTagStart, endProject);
+      let content = xml.slice(contentStart, contentEnd);
+      if (content.endsWith('</file>')) content = content.slice(0, -7);
+      content = content.replace(/^<!\[CDATA\[|\]\]>$/g, '').trim();
       content = content
         .replace(/&lt;/g, '<')
         .replace(/&gt;/g, '>')
         .replace(/&amp;/g, '&')
         .replace(/&quot;/g, '"')
         .replace(/&apos;/g, "'");
-      let normalized = path.endsWith('.dart') && !path.startsWith('lib/') ? 'lib/' + path : path;
+      const normalized = path.endsWith('.dart') && !path.startsWith('lib/') ? 'lib/' + path : path;
       const safe = sanitizeFilePath(normalized);
       if (safe) out[safe] = content;
-    };
-    let match: RegExpExecArray | null;
-    while ((match = pathRegex.exec(xml)) !== null) extractContent(xml, match);
-    // If nothing found, try raw string (in case extraction removed needed content)
+    }
     if (Object.keys(out).length === 0 && raw !== xml) {
       const pathRegex2 =
         /<file[\s\S]*?(?:path|filename|name)\s*=\s*["']([^"']+)["'][\s\S]*?>/gi;
-      let m: RegExpExecArray | null;
-      while ((m = pathRegex2.exec(raw)) !== null) extractContent(raw, m);
+      const matches2: { path: string; contentStart: number; tagStart: number }[] = [];
+      let m2: RegExpExecArray | null;
+      while ((m2 = pathRegex2.exec(raw)) !== null) {
+        matches2.push({ path: m2[1].trim(), contentStart: m2.index + m2[0].length, tagStart: m2.index });
+      }
+      for (let i = 0; i < matches2.length; i++) {
+        const { path, contentStart } = matches2[i];
+        const nextTagStart = i + 1 < matches2.length ? matches2[i + 1].tagStart : raw.length;
+        const endProject = raw.indexOf('</project>', contentStart);
+        const contentEnd = endProject === -1 ? nextTagStart : Math.min(nextTagStart, endProject);
+        let content = raw.slice(contentStart, contentEnd);
+        if (content.endsWith('</file>')) content = content.slice(0, -7);
+        content = content.replace(/^<!\[CDATA\[|\]\]>$/g, '').trim();
+        content = content
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&apos;/g, "'");
+        const normalized = path.endsWith('.dart') && !path.startsWith('lib/') ? 'lib/' + path : path;
+        const safe = sanitizeFilePath(normalized);
+        if (safe) out[safe] = content;
+      }
     }
 
     // Fallback: parse markdown-style code blocks (```dart, ```yaml) with path in preceding lines
@@ -111,8 +134,9 @@ export function parseProjectXML(raw: string): Record<string, string> {
       }
     }
 
-    // Last resort: response contains Dart code but no structure we recognized — extract as lib/main.dart + minimal pubspec
-    if (Object.keys(out).length === 0) {
+    // Last resort: single-file fallback only when no files parsed AND response doesn't clearly have multiple <file> tags
+    const multiFileHint = (raw.match(/<file\s/gi) || []).length >= 2;
+    if (Object.keys(out).length === 0 && !multiFileHint) {
       const extracted = extractDartFromRaw(raw);
       if (extracted.dartContent) {
         out['lib/main.dart'] = extracted.dartContent;
@@ -120,6 +144,9 @@ export function parseProjectXML(raw: string): Record<string, string> {
           extracted.pubspecContent ||
           `name: app\nenvironment:\n  sdk: ">=3.0.0 <4.0.0"\ndependencies:\n  flutter:\n    sdk: flutter\n`;
       }
+    }
+    if (Object.keys(out).length <= 2 && multiFileHint && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+      console.warn('[FlutterForge] Response had multiple <file> tags but only', Object.keys(out).length, 'files parsed.');
     }
 
     if (Object.keys(out).length === 0 && typeof import.meta !== 'undefined' && import.meta.env?.DEV) {

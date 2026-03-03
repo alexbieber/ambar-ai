@@ -323,11 +323,11 @@ export async function generateProject(params: {
     const repairText = await streamCompletion({
       apiKey,
       model,
-      system: FLUTTER_SYSTEM_PROMPT + '\n\nCRITICAL: Your response must be ONLY the <project>...</project> XML. No preamble, no explanation, no markdown.',
+      system: FLUTTER_SYSTEM_PROMPT + '\n\nCRITICAL: Your response must be ONLY the <project>...</project> XML. No preamble, no explanation, no markdown. Include ALL files (at least 5-7). Never output only main.dart.',
       messages: [
         { role: 'user', content: prompt },
         { role: 'assistant', content: fullText ?? '' },
-        { role: 'user', content: 'Re-output only the <project>...</project> XML block from your previous response, with no other text.' },
+        { role: 'user', content: 'Re-output the full <project>...</project> XML from your previous response. You MUST include EVERY file (pubspec.yaml, lib/main.dart, and every screen/widget/model file). Do not output only main.dart. No other text.' },
       ],
       maxTokens: MAX_TOKENS_PROJECT,
       onRetryWait,
@@ -347,6 +347,24 @@ export async function generateProject(params: {
         ? 'The API returned no text. Check your Gemini API key and quota at aistudio.google.com, then try again. You can also try Claude in Settings if you have a key.'
         : 'No project files were parsed from the response. Describe your app in detail (e.g. "A todo app with a list screen, add/edit screen, and categories") and try again.';
     throw new APIError(mainMsg + (preview && !isEmpty ? `\n\nResponse preview:\n${preview}` : ''));
+  }
+  if (Object.keys(files).length < 3 && fullText.trim().length > 500) {
+    onProgress?.('Only 1–2 files parsed, requesting full project…', 56);
+    const fullProjectText = await streamCompletion({
+      apiKey,
+      model,
+      system: GENERATE_WITH_PLAN_SYSTEM_PROMPT,
+      messages: [
+        { role: 'user', content: prompt },
+        { role: 'assistant', content: fullText ?? '' },
+        { role: 'user', content: 'Your previous response had too few files. Generate the COMPLETE multi-file project: pubspec.yaml, lib/main.dart, and at least 4–6 more .dart files (one per screen in lib/screens/, plus lib/widgets/ or lib/models/ as needed). Output the full <project>...</project> XML with every file. No other text.' },
+      ],
+      maxTokens: MAX_TOKENS_PROJECT,
+      onRetryWait,
+      skipRetryWait,
+    });
+    const reparse = parseProjectXML(parsePlanAndProject(fullProjectText ?? '').projectXML);
+    if (Object.keys(reparse).length >= 3) files = reparse;
   }
   onProgress?.(`Parsed ${Object.keys(files).length} files`, 60);
   return { files: ensureCriticalFiles(files), planMarkdown: planMarkdown || undefined };
