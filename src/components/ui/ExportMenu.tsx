@@ -94,7 +94,7 @@ export function ExportMenu() {
         Export
       </button>
       {open && (
-        <div className="absolute top-full right-0 mt-1 py-1 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl min-w-[200px] z-50">
+        <div className="absolute bottom-full right-0 mb-1 py-1 rounded-xl bg-[var(--surface)] border border-[var(--border)] shadow-xl min-w-[200px] z-[100]">
           <button
             type="button"
             onClick={handleZip}
