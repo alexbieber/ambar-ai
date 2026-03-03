@@ -7,6 +7,7 @@ import * as claude from '../services/claudeService';
 import * as gemini from '../services/geminiService';
 import { APIError } from '../services/claudeService';
 import { inferLanguage } from '../services/fileParser';
+import { syncPreviewToServer } from '../services/previewSyncService';
 import type { Project, ProjectFile, GenerationStep, ProviderId } from '../types';
 
 /** Deterministic order: pubspec, lib/main.dart, then rest alphabetically. */
@@ -170,6 +171,7 @@ export function useGenerate() {
 
         setProject(proj);
         addToHistory(proj);
+        syncPreviewToServer(proj.previewHtml).catch(() => {});
         updateStepStatus('5', 'done');
         setStep('Done', 100);
         clearGenerationLive();
@@ -279,6 +281,7 @@ export function useGenerate() {
     try {
       const html = await ai.generatePreview({ apiKey: key, prompt: project.description, model: modelId });
       setProject({ ...project, previewHtml: html, previewSource: 'description' });
+      syncPreviewToServer(html).catch(() => {});
       showNotification('Preview regenerated.', 'success');
     } catch (err) {
       showNotification(err instanceof Error ? err.message : 'Preview failed', 'error');
@@ -306,6 +309,7 @@ export function useGenerate() {
     try {
       const html = await ai.generatePreviewFromCode({ apiKey: key, code, model: modelId });
       setProject({ ...project, previewHtml: html, previewSource: 'code' });
+      syncPreviewToServer(html).catch(() => {});
       showNotification('Preview updated from current code.', 'success');
     } catch (err) {
       showNotification(err instanceof Error ? err.message : 'Preview from code failed', 'error');

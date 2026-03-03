@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { useProjectStore } from '../../stores/projectStore';
 import { useGenerate } from '../../hooks/useGenerate';
 import { createPreviewBlobUrl } from '../../services/previewGenerator';
+import { syncPreviewToServer, getPreviewUrl } from '../../services/previewSyncService';
 import { Tag } from '../ui/Tag';
 import { Spinner } from '../ui/Spinner';
-import { RotateCw, Maximize2, Smartphone, Code } from 'lucide-react';
+import { RotateCw, Maximize2, Smartphone, Code, X } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { PreviewSource } from '../../types';
 
@@ -43,6 +45,9 @@ export function PreviewPanel() {
   const { regeneratePreview, regeneratePreviewFromCode, isGenerating } = useGenerate();
   const [device, setDevice] = useState<Device>('iphone');
   const [fullscreen, setFullscreen] = useState(false);
+  const [showQR, setShowQR] = useState(false);
+  const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string | null>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
 
   const blobUrl = useMemo(() => {
     if (!project?.previewHtml) return null;
@@ -56,13 +61,31 @@ export function PreviewPanel() {
   }, [blobUrl]);
 
   useEffect(() => {
-    if (!fullscreen) return;
+    if (!fullscreen && !showQR) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setFullscreen(false);
+      if (e.key === 'Escape') {
+        setFullscreen(false);
+        setShowQR(false);
+        setQrError(null);
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [fullscreen]);
+  }, [fullscreen, showQR]);
+
+  const handleOpenOnPhone = async () => {
+    if (!project?.previewHtml?.trim()) return;
+    setQrError(null);
+    setShowQR(true);
+    setMobilePreviewUrl(null);
+    try {
+      await syncPreviewToServer(project.previewHtml);
+      const url = await getPreviewUrl();
+      setMobilePreviewUrl(url);
+    } catch (e) {
+      setQrError(e instanceof Error ? e.message : 'Could not get preview URL. Is the server running (npm run dev:full)?');
+    }
+  };
 
   const style = DEVICE_STYLES[device];
   const contentH = style.height - style.contentHeightOffset;
@@ -116,6 +139,15 @@ export function PreviewPanel() {
             title="Fullscreen"
           >
             <Maximize2 className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenOnPhone}
+            disabled={!project?.previewHtml?.trim() || isPlaceholderFailure}
+            className="p-1.5 rounded text-[var(--muted)] hover:text-accent hover:bg-[var(--faint)] disabled:opacity-50"
+            title="Open on phone (scan QR)"
+          >
+            <Smartphone className="w-4 h-4" />
           </button>
           <div className="flex rounded overflow-hidden border border-[var(--border)]">
             {(['iphone', 'android', 'tablet'] as const).map((d) => (
@@ -223,6 +255,48 @@ export function PreviewPanel() {
           </div>
         )}
       </div>
+
+      {showQR && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4"
+          onClick={() => { setShowQR(false); setQrError(null); }}
+          role="dialog"
+          aria-modal
+        >
+          <div
+            className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-6 max-w-sm shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-semibold text-[var(--text)]">Open on phone</span>
+              <button
+                type="button"
+                onClick={() => { setShowQR(false); setQrError(null); }}
+                className="p-1.5 rounded text-[var(--muted)] hover:bg-[var(--faint)] hover:text-[var(--text)]"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <p className="text-xs text-[var(--muted)] mb-3">Scan with your phone camera (same Wi‑Fi as this computer).</p>
+            {qrError && (
+              <p className="text-xs text-red-400 mb-3">{qrError}</p>
+            )}
+            {mobilePreviewUrl && (
+              <>
+                <div className="flex justify-center p-4 bg-white rounded-lg">
+                  <QRCodeSVG value={mobilePreviewUrl} size={200} level="M" />
+                </div>
+                <p className="mt-3 text-[10px] text-[var(--muted)] break-all font-mono">{mobilePreviewUrl}</p>
+              </>
+            )}
+            {!mobilePreviewUrl && !qrError && (
+              <div className="flex justify-center py-8">
+                <Spinner className="text-accent" />
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {fullscreen && (
         <div

@@ -1,12 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
+import os from 'os';
 
 const app = express();
 const PORT = 3001;
 
+/** In-memory store for mobile preview (GET /preview returns this). */
+let sharedPreviewHtml = '';
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 
 function escapeForTemplate(str) {
   if (typeof str !== 'string') return '';
@@ -209,7 +213,35 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Proxy server is running' });
 });
 
-app.listen(PORT, () => {
-  console.log(`?? Proxy server running on http://localhost:${PORT}`);
-  console.log(`?? Ready to proxy API requests (Anthropic Claude & Google Gemini)`);
+// ── Mobile preview (scan QR to open on phone) ─────────────────────────────
+app.post('/preview', (req, res) => {
+  const html = typeof req.body?.html === 'string' ? req.body.html : (typeof req.body === 'string' ? req.body : '');
+  sharedPreviewHtml = html || '';
+  res.json({ ok: true });
+});
+
+app.get('/preview', (_req, res) => {
+  res.type('text/html').send(sharedPreviewHtml || '<!DOCTYPE html><html><body style="background:#1a1a2e;color:#888;font-family:sans-serif;padding:2rem;text-align:center;">No preview yet. Generate an app in FlutterForge and open “Open on phone” to sync.</body></html>');
+});
+
+function getLocalNetworkUrl() {
+  const ifaces = os.networkInterfaces();
+  for (const name of Object.keys(ifaces)) {
+    for (const iface of ifaces[name] || []) {
+      if (iface.family === 'IPv4' && !iface.internal) {
+        return `http://${iface.address}:${PORT}/preview`;
+      }
+    }
+  }
+  return `http://localhost:${PORT}/preview`;
+}
+
+app.get('/preview/url', (_req, res) => {
+  res.json({ url: getLocalNetworkUrl() });
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Proxy server running on http://localhost:${PORT}`);
+  console.log(`📱 Mobile preview: ${getLocalNetworkUrl()}`);
+  console.log(`   Scan QR in the app to open preview on your phone (same Wi‑Fi).`);
 });
