@@ -10,12 +10,19 @@
 
 *No boilerplate. No scaffolding. Just a prompt.*
 
+[About](#-about) •
 [Quick Start](#-quick-start) •
 [Features](#-why-flutterforge) •
 [For Developers](#-for-developers) •
 [Collaborate](#-collaborate)
 
 </div>
+
+---
+
+## 📌 About
+
+**FlutterForge AI** is an open-source IDE that turns a single prompt into a complete, runnable Flutter app. Describe your idea in plain English — e.g. *"A finance tracker with charts and dark theme"* — and get a full multi-file project with `main.dart`, screens, models, and `pubspec.yaml`, plus a live preview in a phone mockup. Powered by **Claude** and **Google Gemini**; your API keys stay in your browser. No vendor lock-in, no boilerplate. Built for developers who want to ship Flutter apps faster.
 
 ---
 
