@@ -1,144 +1,185 @@
-# FlutterForge AI 🚀
+<div align="center">
 
-Build complete Flutter mobile apps with just a prompt using AI. Supports **Claude (Anthropic)** and **Google Gemini** — use one or both.
+# ⚡ FlutterForge AI
 
-## Features
+### **Describe your app. Get a full Flutter codebase. In seconds.**
 
-- 🤖 **AI-Powered Generation** - Generate complete, runnable Flutter apps with Claude or Gemini
-- 🔄 **Dual API Support** - Use **Anthropic (Claude)** and/or **Google Gemini**; switch in Settings (⌘K)
-- 📱 **Live Preview** - See your app rendered in a realistic phone mockup
-- 🎨 **Professional UI** - Modern dark theme with glassmorphism and smooth animations
-- 📋 **One-Click Copy** - Copy generated code instantly
-- 🗂 **Build History** - Saves your last generated apps
-- ⌨️ **Keyboard Shortcuts** - Press ⌘↵ (Cmd+Enter) to generate
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Open Source](https://img.shields.io/badge/Open%20Source-♥-red.svg)](https://opensource.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-## Tech Stack
+*No boilerplate. No scaffolding. Just a prompt.*
 
-- **Vite** - Lightning-fast build tool
-- **React 18** - Modern React with hooks
-- **TypeScript** - Type-safe development
-- **Tailwind CSS** - Utility-first styling
-- **Lucide React** - Icons
-- **Express** - Backend proxy (avoids CORS for Claude & Gemini)
-- **Anthropic API (Claude)** - AI code generation
-- **Google Gemini API** - AI code generation (optional alternative / fallback)
+[Quick Start](#-quick-start) •
+[Features](#-why-flutterforge) •
+[For Developers](#-for-developers) •
+[Collaborate](#-collaborate)
 
-## Quick Start
+</div>
 
-1. **Install dependencies**
-   ```bash
-   npm install
-   ```
+---
 
-2. **Start both server and client**
-   ```bash
-   npm run dev:full
-   ```
-   - Proxy server: `http://localhost:3001`
-   - Frontend: `http://localhost:5173`
+## 🚀 What is FlutterForge AI?
 
-   Or run separately:
-   ```bash
-   npm run server   # Terminal 1
-   npm run dev      # Terminal 2
-   ```
+**FlutterForge AI** turns a single sentence into a complete, runnable **Flutter** mobile app. You describe what you want — a finance tracker, a todo app with categories, a social feed — and the AI generates a full multi-file project: `main.dart`, screens, models, `pubspec.yaml`, and a live preview in a phone mockup. Copy the code, paste into your project, run.
 
-3. **Add an API key (in the app)**  
-   Click **“Add API Key”** (or press ⌘K). You can use **either or both**:
+It’s **open source**, runs **locally** (your API keys stay in your browser), and supports **Claude** and **Google Gemini** so you can use the best model for you — or both. **We welcome collaborators** — see [Collaborate](#-collaborate) to contribute code, report issues, or help grow the project.
 
-   | Provider | Get key from | Key format |
-   |----------|----------------|------------|
-   | **Google Gemini** | [Google AI Studio](https://aistudio.google.com/apikey) | Starts with `AIza...` |
-   | **Anthropic (Claude)** | [Anthropic Console](https://console.anthropic.com) | Starts with `sk-ant-...` |
+---
 
-   Keys are stored only in your browser (localStorage) and are sent directly to the provider; they are never sent to our servers.
+## ✨ Why FlutterForge?
 
-4. **Generate your first app**
-   - Enter a prompt (e.g. “A finance tracker with charts and dark theme”)
-   - Click **Generate App** or press ⌘↵
-   - Copy the code into your Flutter project
+| | |
+|---|---|
+| 🧠 **AI-native** | Powered by **Claude** (Anthropic) and **Google Gemini**. Choose one or both; switch in Settings. Free tier available with Gemini. |
+| 📱 **Real Flutter, real fast** | Generates proper structure: `lib/screens/`, `lib/models/`, Material 3, const constructors — ready for `flutter run`. |
+| 👁 **Live preview** | See your app in a phone frame before you copy a single line. Iterate with natural language. |
+| 🔐 **Your keys, your machine** | API keys are stored only in your browser and sent directly to the provider. We never see them. |
+| ⌨ **Built for flow** | Keyboard shortcuts (⌘↵ to generate, ⌘K for API key), dark UI, one-click copy. |
+| 🌐 **100% open source** | MIT license. Inspect, fork, and improve. No vendor lock-in. |
 
-## API Keys & Providers
+---
 
-- **Gemini** – Free tier available; good for getting started. Get a key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey).
-- **Claude** – Requires credits. Get a key at [console.anthropic.com](https://console.anthropic.com).
-- You can set **Gemini only**, **Claude only**, or **both**. In Settings you can choose provider (e.g. “Auto” prefers Gemini when a Gemini key is set, otherwise Claude).
-- If you hit **Gemini rate limits**, wait ~1 minute or add a Claude key and switch provider in Settings.
+## 📸 See it in action
 
-## Why a Proxy Server?
+*One prompt → full Flutter app with live preview. Add a screenshot or GIF above to showcase the flow.*
 
-Anthropic and Gemini APIs are called from the backend to avoid CORS. The Express server (`server.js`) proxies requests so the frontend never exposes your API keys to third-party origins.
+---
 
-## Optional: CLI script (environment variable)
+## 🎯 Quick Start
 
-The script `scripts/generate-and-save.mjs` calls the proxy to generate a project and write it to disk. It uses **Gemini** by default and expects an API key via environment variable:
+**1. Clone and install**
 
 ```bash
-# Start the proxy first (in another terminal): npm run server
-API_KEY=your_gemini_api_key node scripts/generate-and-save.mjs "A todo app with categories"
+git clone https://github.com/alexbieber/ambar-ai.git
+cd ambar-ai
+npm install
 ```
 
-Output is written to `finance_tracker_app/` (see script for the default prompt and folder).
+**2. Run the app**
 
-## Building for Production
+```bash
+npm run dev:full
+```
+
+Opens the **proxy** at `http://localhost:3001` and the **app** at `http://localhost:5173`.
+
+**3. Add an API key (in the app)**
+
+Click **Add API Key** (or press **⌘K**). Use **Gemini** (free tier) or **Claude** — or both.
+
+| Provider | Get key | Key format |
+|----------|---------|------------|
+| **Google Gemini** | [Google AI Studio](https://aistudio.google.com/apikey) | `AIza...` |
+| **Anthropic Claude** | [Anthropic Console](https://console.anthropic.com) | `sk-ant-...` |
+
+**4. Generate**
+
+Type a prompt like *"A finance tracker with charts and dark theme"* → press **⌘↵** (or click Generate) → copy the code into your Flutter project.
+
+---
+
+## 📖 Using Generated Code
+
+```bash
+flutter create my_app && cd my_app
+# Replace lib/main.dart (and add any generated files) with FlutterForge output
+flutter pub get && flutter run
+```
+
+---
+
+## 🛠 For Developers
+
+### Tech stack
+
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
+- **Backend:** Express (proxy for Claude & Gemini; avoids CORS)
+- **AI:** Anthropic API (Claude), Google Gemini API
+
+### Project structure
+
+```
+├── src/
+│   ├── components/   # UI, modals, layout, diff viewer, agents
+│   ├── hooks/        # useGenerate, useKeyboard
+│   ├── services/     # claudeService, geminiService, fileParser, export
+│   ├── stores/       # aiStore, project state
+│   └── utils/        # constants, prompts
+├── server.js         # Express proxy (Claude + Gemini)
+├── scripts/
+│   └── generate-and-save.mjs   # CLI: generate project (uses API_KEY env)
+└── package.json
+```
+
+### CLI (optional)
+
+Generate a project from the terminal. **Start the proxy first** (`npm run server`), then:
+
+```bash
+API_KEY=your_gemini_key node scripts/generate-and-save.mjs "A todo app with categories"
+```
+
+Output is written to `finance_tracker_app/` (see script for options).
+
+### Build for production
 
 ```bash
 npm run build
 ```
 
-Output is in the `dist/` directory.
+Output is in `dist/`.
 
-## Using Generated Code
+---
 
-1. Create a new Flutter project:
-   ```bash
-   flutter create my_app
-   ```
+## 🔧 Troubleshooting
 
-2. Replace `lib/main.dart` (and add any other generated files) with the generated code.
+| Issue | Fix |
+|-------|-----|
+| **Failed to fetch** | Ensure proxy is running: `npm run dev:full` or `npm run server` on port 3001. |
+| **Invalid API key** | **Gemini:** key from [AI Studio](https://aistudio.google.com/apikey), starts with `AIza...`. **Claude:** key from [Console](https://console.anthropic.com), starts with `sk-ant-...`. |
+| **Gemini rate limit** | Wait ~1 min or add a Claude key and switch provider in Settings (⌘K). |
 
-3. Run:
-   ```bash
-   flutter pub get
-   flutter run
-   ```
+---
 
-## Project Structure
+## 🤝 Collaborate
 
-```
-├── src/
-│   ├── App.tsx                 # Main app
-│   ├── main.tsx
-│   ├── index.css
-│   ├── components/             # UI components, modals, layout, diff, agents, chat
-│   ├── hooks/                  # useGenerate, useKeyboard, etc.
-│   ├── services/               # claudeService, geminiService, fileParser, preview, export, agents
-│   ├── stores/                 # aiStore, project state, provider config
-│   ├── utils/                  # constants, prompts, diffUtils
-│   ├── types/
-│   └── workers/
-├── server.js                   # Express proxy (Claude + Gemini)
-├── scripts/
-│   └── generate-and-save.mjs   # CLI: generate project via proxy (uses API_KEY env)
-├── index.html
-├── vite.config.ts
-├── tailwind.config.js
-└── package.json
-```
+We’d love to build FlutterForge AI with you. Here are ways to get involved:
 
-## Troubleshooting
+| How | What to do |
+|-----|------------|
+| **💻 Code** | Open a **Pull Request** — fix a bug, add a feature, or improve prompts. See [Contributing](#contributing-code) below. |
+| **🐛 Bugs & ideas** | Open an **Issue** — report bugs, suggest features, or propose improvements. |
+| **📝 Docs & examples** | Improve the README, add example prompts, or write a short tutorial and share it via a PR or Issue. |
+| **🌍 Spread the word** | Star the repo, share with Flutter or AI communities, or blog about your experience. |
+| **🔧 Maintain / co-maintain** | Interested in triaging issues, reviewing PRs, or helping steer the project? Open an Issue and say hi. |
 
-### "Failed to fetch"
-- Ensure the proxy is running on port 3001 (e.g. `npm run dev:full` or `npm run server` in one terminal).
-- Check that nothing else is using port 3001.
+Every contribution counts — from a one-line fix to a new feature. We’re happy to guide first-time contributors.
 
-### API key errors
-- **Gemini**: Key should start with `AIza...` and be from [Google AI Studio](https://aistudio.google.com/apikey). Check quota and rate limits.
-- **Claude**: Key should start with `sk-ant-...`. Confirm it’s active and you have credits in [Anthropic Console](https://console.anthropic.com).
+### Contributing code
 
-### Gemini rate limit
-- Wait about a minute and retry, or add a Claude key and switch provider in Settings (⌘K).
+1. **Fork** the repo and clone it locally.
+2. **Create a branch:** `git checkout -b feature/your-idea` (or `fix/issue-description`).
+3. **Make your changes** — keep PRs focused and add a short description.
+4. **Push** and open a **Pull Request** against `main`. We’ll review and merge.
 
-## License
+Ideas we’d especially welcome:
 
-MIT
+- Better prompts and code-generation quality
+- Support for more Flutter patterns or packages
+- UI/UX and accessibility improvements
+- Tests, docs, and example projects
+
+---
+
+## 📄 License
+
+This project is open source under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
+
+<div align="center">
+
+**If FlutterForge AI saves you time, consider giving it a ⭐ — it helps others discover the project.**
+
+</div>
