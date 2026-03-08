@@ -3,8 +3,8 @@ import { useState, useEffect } from 'react';
 const GITHUB_REPO = 'alexbieber/ambar-ai';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-// Visitor count: badge increments when loaded (page views). GitHub does not expose repo traffic via API.
-const VISITORS_BADGE_URL = `https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=${encodeURIComponent(GITHUB_URL)}&title=Visitors&count_bg=%236366f1&title_bg=%23555555&icon=github&icon_color=%23ffffff`;
+// Visitor count: badge increments when loaded. (hits.donaldzou.dev; visitorbadge.io returned 404.)
+const VISITORS_BADGE_URL = `https://hits.donaldzou.dev/hits?url=${encodeURIComponent(GITHUB_URL)}&label=Visitors&color=%236366f1&style=flat`;
 
 interface RepoStats {
   stargazers_count: number;
