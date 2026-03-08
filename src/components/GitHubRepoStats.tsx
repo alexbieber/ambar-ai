@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 const GITHUB_REPO = 'alexbieber/ambar-ai';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-// Visitor count badge (visitorbadge.io)
-const VISITORS_BADGE_URL = 'https://api.visitorbadge.io/api?page_id=alexbieber.ambar-ai';
+// Visitor count badge (visitorbadge.io): /api/visitors, link to status page
+const VISITORS_BADGE_URL =
+  'https://api.visitorbadge.io/api/visitors?path=alexbieber%2Fambar-ai&labelColor=%23555555&countColor=%236366f1';
+const VISITORS_STATUS_URL = 'https://visitorbadge.io/status?path=alexbieber/ambar-ai';
 
 interface RepoStats {
   stargazers_count: number;
@@ -94,7 +96,7 @@ export function GitHubRepoStats() {
         )}
       </a>
       <a
-        href={GITHUB_URL}
+        href={VISITORS_STATUS_URL}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center min-w-0"

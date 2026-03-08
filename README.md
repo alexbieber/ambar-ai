@@ -10,7 +10,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/alexbieber/ambar-ai?style=social)](https://github.com/alexbieber/ambar-ai)
 [![GitHub forks](https://img.shields.io/github/forks/alexbieber/ambar-ai?style=social)](https://github.com/alexbieber/ambar-ai/fork)
-[![Visitors](https://api.visitorbadge.io/api?page_id=alexbieber.ambar-ai)](https://github.com/alexbieber/ambar-ai)
+[![Visitors](https://api.visitorbadge.io/api/visitors?path=alexbieber%2Fambar-ai&labelColor=%23555555&countColor=%236366f1)](https://visitorbadge.io/status?path=alexbieber/ambar-ai)
 
 *No boilerplate. No scaffolding. Just a prompt.*
 
