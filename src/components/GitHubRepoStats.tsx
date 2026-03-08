@@ -3,9 +3,8 @@ import { useState, useEffect } from 'react';
 const GITHUB_REPO = 'alexbieber/ambar-ai';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-// Dynamic count: our API increments CountAPI then redirects to shields.io badge with value
-const BADGE_ORIGIN = 'https://ambar-ai.vercel.app';
-const VISITORS_BADGE_URL = `${BADGE_ORIGIN}/api/visitor-badge`;
+// Visitor count badge (visitorbadge.io)
+const VISITORS_BADGE_URL = 'https://api.visitorbadge.io/api?page_id=alexbieber.ambar-ai';
 
 interface RepoStats {
   stargazers_count: number;
