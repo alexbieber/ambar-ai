@@ -22,15 +22,15 @@
 
 ## 📌 About
 
-**FlutterForge AI** is an open-source IDE that turns a single prompt into a complete, runnable Flutter app. Describe your idea in plain English — e.g. *"A finance tracker with charts and dark theme"* — and get a full multi-file project with `main.dart`, screens, models, and `pubspec.yaml`, plus a live preview in a phone mockup. Powered by **Claude** and **Google Gemini**; your API keys stay in your browser. No vendor lock-in, no boilerplate. Built for developers who want to ship Flutter apps faster.
+**FlutterForge AI** is an open-source IDE that turns a short prompt into a complete, runnable Flutter app. Type *"Todo app"*, *"Instagram clone"*, or *"A finance tracker with charts"* — we **plan all screens and requirements**, then generate a full multi-file project (screens, models, `pubspec.yaml`) with **Unsplash demo images** and a **live preview** rendered from your Flutter code. One plan-then-build flow; powered by **Claude** and **Google Gemini**. Your API keys stay in your browser. No vendor lock-in. Built for developers who want to ship Flutter apps faster.
 
 ---
 
 ## 🚀 What is FlutterForge AI?
 
-**FlutterForge AI** turns a single sentence into a complete, runnable **Flutter** mobile app. You describe what you want — a finance tracker, a todo app with categories, a social feed — and the AI generates a full multi-file project: `main.dart`, screens, models, `pubspec.yaml`, and a live preview in a phone mockup. Copy the code, paste into your project, run.
+**FlutterForge AI** turns a short prompt into a complete, runnable **Flutter** mobile app. Type *"Todo app"*, *"Instagram clone"*, or *"Recipe browser"* — we **plan every screen and requirement** (feed, profile, explore, etc. for clones), then generate a full multi-file project: `lib/screens/`, `lib/models/`, `pubspec.yaml`, **Unsplash demo images**, and a **live preview** that renders your Flutter code as HTML in a phone mockup. Copy the code and run with `flutter run`.
 
-It’s **open source**, runs **locally** (your API keys stay in your browser), and supports **Claude** and **Google Gemini** so you can use the best model for you — or both. **We welcome collaborators** — see [Collaborate](#-collaborate) to contribute code, report issues, or help grow the project.
+It’s **open source**, runs **locally** (your API keys stay in your browser), and supports **Claude** and **Google Gemini**. **We welcome collaborators** — see [Collaborate](#-collaborate).
 
 ---
 
@@ -38,11 +38,12 @@ It’s **open source**, runs **locally** (your API keys stay in your browser), a
 
 | | |
 |---|---|
-| 🧠 **AI-native** | Powered by **Claude** (Anthropic) and **Google Gemini**. Choose one or both; switch in Settings. Free tier available with Gemini. |
-| 📱 **Real Flutter, real fast** | Generates proper structure: `lib/screens/`, `lib/models/`, Material 3, const constructors — ready for `flutter run`. |
-| 👁 **Live preview** | See your app in a phone frame before you copy a single line. Iterate with natural language. |
-| 🔐 **Your keys, your machine** | API keys are stored only in your browser and sent directly to the provider. We never see them. |
-| ⌨ **Built for flow** | Keyboard shortcuts (⌘↵ to generate, ⌘K for API key), dark UI, one-click copy. |
+| 🧠 **Plan-then-build** | One flow: we plan all screens and requirements from your prompt, then generate the full Flutter project. Short prompts (e.g. *"Instagram clone"*) get a complete app with 8–15+ files. |
+| 📱 **Real Flutter, real fast** | Proper structure: `lib/screens/`, `lib/models/`, Material 3, Unsplash demo images — ready for `flutter run`. |
+| 👁 **Preview from your code** | After generate, we render your Flutter code as HTML in a phone mockup so you see the app before you export. |
+| 🖼 **Unsplash images** | Every generated app includes demo images (avatars, cards, list thumbnails) via Unsplash so it looks polished out of the box. |
+| 🔐 **Your keys, your machine** | API keys stay in your browser and are sent only to the provider. We never see them. |
+| ⌨ **Built for flow** | ⌘↵ to generate, ⌘K for API key, dark UI, GitHub stars/forks in the header. |
 | 🌐 **100% open source** | MIT license. Inspect, fork, and improve. No vendor lock-in. |
 
 ---
@@ -82,7 +83,7 @@ Click **Add API Key** (or press **⌘K**). Use **Gemini** (free tier) or **Claud
 
 **4. Generate**
 
-Type a prompt like *"A finance tracker with charts and dark theme"* → press **⌘↵** (or click Generate) → copy the code into your Flutter project.
+Type a short prompt — e.g. *"Todo app"*, *"Instagram clone"*, *"Recipe browser"* — then press **⌘↵** (or click **Generate**). We plan all screens and requirements, generate the Flutter project with Unsplash demo images, and show a live preview from your code. Copy the files into your Flutter project when ready.
 
 ---
 
@@ -108,12 +109,13 @@ flutter pub get && flutter run
 
 ```
 ├── src/
-│   ├── components/   # UI, modals, layout, diff viewer, agents
-│   ├── hooks/        # useGenerate, useKeyboard
-│   ├── services/     # claudeService, geminiService, fileParser, export
-│   ├── stores/       # aiStore, project state
-│   └── utils/        # constants, prompts
-├── server.js         # Express proxy (Claude + Gemini)
+│   ├── agent/           # Plan-then-build prompts, clone-app & Unsplash rules
+│   ├── components/      # UI, layout (Sidebar, TopBar, PreviewPanel), GitHubRepoStats
+│   ├── hooks/            # useGenerate (plan+code, preview-from-code)
+│   ├── services/         # claudeService, geminiService, fileParser, export, previewGenerator
+│   ├── stores/           # aiStore, projectStore, uiStore
+│   └── utils/            # constants, fileParser helpers
+├── server.js             # Express proxy (Claude + Gemini)
 ├── scripts/
 │   └── generate-and-save.mjs   # CLI: generate project (uses API_KEY env)
 └── package.json
