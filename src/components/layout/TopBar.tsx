@@ -6,6 +6,7 @@ import { Tag } from '../ui/Tag';
 import { Button } from '../ui/Button';
 import { Settings, HelpCircle, Key } from 'lucide-react';
 import { ExportMenu } from '../ui/ExportMenu';
+import { GitHubRepoStats } from '../GitHubRepoStats';
 
 export function TopBar() {
   const project = useProjectStore((s) => s.project);
@@ -115,6 +116,7 @@ export function TopBar() {
             {effectiveModelId.replace(/^claude-|^gemini-/, '').slice(0, 20)}
           </Tag>
         </span>
+        <GitHubRepoStats />
         <ExportMenu />
         <button
           type="button"

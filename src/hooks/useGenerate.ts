@@ -27,7 +27,7 @@ const STEPS: GenerationStep[] = [
   { id: '1', label: 'Initializing project architecture', status: 'pending' },
   { id: '2', label: 'Generating Flutter source files', status: 'pending' },
   { id: '3', label: 'Parsing project structure', status: 'pending' },
-  { id: '4', label: 'Finalizing', status: 'pending' },
+  { id: '4', label: 'Rendering preview from code', status: 'pending' },
   { id: '5', label: 'Complete', status: 'pending' },
 ];
 
@@ -135,14 +135,35 @@ export function useGenerate() {
         });
 
         updateStepStatus('3', 'done', `${sortedPaths.length} files created`);
-        updateStepStatus('4', 'running', 'Finalizing…');
-        setStep('Finalizing (one API call)…', 70);
+        updateStepStatus('4', 'running', 'Rendering preview from code…');
+        setStep('Rendering Flutter code in preview…', 70);
 
-        // Plan-then-build: one API call only. No separate preview call; use placeholder.
-        // User can click "Regenerate from code" in Preview panel to get an HTML preview later if desired.
-        const previewHtml = ONE_CALL_PLACEHOLDER_HTML;
+        // Generate HTML preview from the Flutter/Dart code we just created so the preview shows the app.
+        let previewHtml = ONE_CALL_PLACEHOLDER_HTML;
+        let previewSource: 'code' | 'one_call' = 'one_call';
+        const mainPath = 'lib/main.dart';
+        const dartPaths = Object.keys(filesRecord).filter((p) => p.endsWith('.dart'));
+        const orderedDart = [mainPath].filter((p) => dartPaths.includes(p)).concat(dartPaths.filter((p) => p !== mainPath).sort());
+        const codeForPreview = orderedDart.map((p) => `// ${p}\n${filesRecord[p]}`).join('\n\n');
+        if (codeForPreview.trim()) {
+          try {
+            previewHtml = await ai.generatePreviewFromCode({
+              apiKey: effectiveKey.trim(),
+              code: codeForPreview,
+              model: modelId,
+              onProgress: (step) => {
+                setStep(step, 78);
+                updateStepStatus('4', 'running', step);
+              },
+            });
+            previewSource = 'code';
+          } catch {
+            setStep('Preview from code failed, using placeholder', 78);
+            updateStepStatus('4', 'running', 'Preview failed, using placeholder');
+          }
+        }
 
-        updateStepStatus('4', 'done', 'Done');
+        updateStepStatus('4', 'done', previewSource === 'code' ? 'Preview ready' : 'Placeholder');
         updateStepStatus('5', 'running', 'Writing to project…');
         setStep('Finalizing project…', 92);
 
@@ -154,7 +175,7 @@ export function useGenerate() {
           files,
           createdAt: Date.now(),
           previewHtml,
-          previewSource: 'one_call',
+          previewSource,
           generatedByProvider,
           planMarkdown: planMarkdown || undefined,
         };
