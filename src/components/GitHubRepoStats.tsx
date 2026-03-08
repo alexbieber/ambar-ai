@@ -3,8 +3,9 @@ import { useState, useEffect } from 'react';
 const GITHUB_REPO = 'alexbieber/ambar-ai';
 const GITHUB_API = `https://api.github.com/repos/${GITHUB_REPO}`;
 const GITHUB_URL = `https://github.com/${GITHUB_REPO}`;
-// Static badge (external counters were unreliable: donaldzou, visitorbadge.io, glitch 410)
-const VISITORS_BADGE_URL = 'https://img.shields.io/badge/Visitors-Welcome-6366f1';
+// Dynamic count: our API increments CountAPI then redirects to shields.io badge with value
+const BADGE_ORIGIN = 'https://ambar-ai.vercel.app';
+const VISITORS_BADGE_URL = `${BADGE_ORIGIN}/api/visitor-badge`;
 
 interface RepoStats {
   stargazers_count: number;
