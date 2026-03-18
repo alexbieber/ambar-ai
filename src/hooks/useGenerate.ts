@@ -31,6 +31,11 @@ const STEPS: GenerationStep[] = [
   { id: '5', label: 'Complete', status: 'pending' },
 ];
 
+const ENHANCE_STEPS: GenerationStep[] = [
+  { id: 'e1', label: 'Applying your instructions', status: 'running' },
+  { id: 'e2', label: 'Updating preview', status: 'pending' },
+];
+
 /** Placeholder shown after plan-then-build (one API call). User can use "Regenerate from code" for HTML preview. */
 const ONE_CALL_PLACEHOLDER_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=390,height=760"><style>body{margin:0;padding:24px;background:#0e0e1c;color:#9ca3af;font-family:system-ui,sans-serif;font-size:14px;line-height:1.5;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:760px;box-sizing:border-box}.badge{display:inline-block;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;margin-bottom:16px}h1{color:#e5e7eb;font-size:18px;margin:0 0 8px;text-align:center}p{margin:0 0 12px;text-align:center;max-width:320px}.muted{color:#6b7280;font-size:12px;margin-top:24px}</style></head><body><span class="badge">Plan-then-build · One API call</span><h1>App generated</h1><p>Your interactive Flutter app was built in a single request. Use <strong>Regenerate from code</strong> in the Preview panel to generate an HTML preview from your Dart code.</p><p class="muted">Or export the project and run it with Flutter.</p></body></html>`;
 
@@ -343,6 +348,7 @@ export function useGenerate() {
       setPreEnhanceSnapshot(project);
       setLoading(true);
       setOperationType('enhance');
+      setSteps(ENHANCE_STEPS.map((s, i) => ({ ...s, status: i === 0 ? ('running' as const) : ('pending' as const) })));
       const ai = eff === 'anthropic' ? claude : gemini;
       const filesContent: Record<string, string> = {};
       for (const [path, file] of Object.entries(project.files)) {
@@ -369,6 +375,8 @@ export function useGenerate() {
         for (const path of sortFilePaths(Object.keys(mergedRecord))) {
           files[path] = createProjectFile(path, mergedRecord[path]);
         }
+        updateStepStatus('e1', 'done');
+        updateStepStatus('e2', 'running', 'Generating…');
         setStep('Updating preview…', 85);
         let previewHtml = project.previewHtml;
         try {
@@ -376,6 +384,7 @@ export function useGenerate() {
         } catch {
           // keep existing preview
         }
+        updateStepStatus('e2', 'done');
         const updated: Project = {
           ...project,
           files,
@@ -390,12 +399,28 @@ export function useGenerate() {
         const msg = err instanceof Error ? err.message : 'Enhance failed';
         setLastError(msg);
         showNotification(msg, 'error');
+        const st = useAiStore.getState().steps;
+        setSteps(st.map((s) => ({ ...s, status: s.status === 'running' ? ('error' as const) : s.status })));
       } finally {
         setLoading(false);
         setOperationType(null);
       }
     },
-    [project, setProjectPreservingTabs, setPreEnhanceSnapshot, setLoading, setStep, setLastError, setLastParseFailureRaw, clearError, showNotification, appendStreamingChunk, setOperationType]
+    [
+      project,
+      setProjectPreservingTabs,
+      setPreEnhanceSnapshot,
+      setLoading,
+      setStep,
+      setSteps,
+      updateStepStatus,
+      setLastError,
+      setLastParseFailureRaw,
+      clearError,
+      showNotification,
+      appendStreamingChunk,
+      setOperationType,
+    ]
   );
 
   const isGenerating = useAiStore((s) => s.isLoading);

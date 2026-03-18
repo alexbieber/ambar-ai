@@ -1,4 +1,4 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 
 interface Props {
@@ -9,12 +9,14 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  /** Increment to remount children so "Try again" can recover */
+  resetKey: number;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  state: State = { hasError: false, error: null };
+  state: State = { hasError: false, error: null, resetKey: 0 };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { hasError: true, error };
   }
 
@@ -36,7 +38,13 @@ export class ErrorBoundary extends Component<Props, State> {
           </p>
           <button
             type="button"
-            onClick={() => this.setState({ hasError: false, error: null })}
+            onClick={() =>
+              this.setState((s) => ({
+                hasError: false,
+                error: null,
+                resetKey: s.resetKey + 1,
+              }))
+            }
             className="px-4 py-2 rounded-lg bg-accent/20 text-accent hover:bg-accent/30"
           >
             Try again
@@ -44,6 +52,6 @@ export class ErrorBoundary extends Component<Props, State> {
         </div>
       );
     }
-    return this.props.children;
+    return <Fragment key={this.state.resetKey}>{this.props.children}</Fragment>;
   }
 }

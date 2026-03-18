@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useProjectStore } from '../../stores/projectStore';
 import { useGenerate } from '../../hooks/useGenerate';
@@ -49,16 +49,28 @@ export function PreviewPanel() {
   const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
 
-  const blobUrl = useMemo(() => {
-    if (!project?.previewHtml) return null;
-    return createPreviewBlobUrl(project.previewHtml);
-  }, [project?.previewHtml]);
+  const blobUrlRef = useRef<string | null>(null);
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
   useEffect(() => {
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
+    if (!project?.previewHtml?.trim()) {
+      setBlobUrl(null);
+      return;
+    }
+    const u = createPreviewBlobUrl(project.previewHtml);
+    blobUrlRef.current = u;
+    setBlobUrl(u);
     return () => {
-      if (blobUrl) URL.revokeObjectURL(blobUrl);
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
     };
-  }, [blobUrl]);
+  }, [project?.previewHtml]);
 
   useEffect(() => {
     if (!fullscreen && !showQR) return;

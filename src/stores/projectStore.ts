@@ -1,8 +1,16 @@
 import { create } from 'zustand';
 import type { Project } from '../types';
+import { useUiStore } from './uiStore';
 
 const HISTORY_MAX = 5;
 const HISTORY_KEY = 'flutterforge_history';
+
+/** Tiny placeholder so history fits in localStorage; user can Regenerate preview from code. */
+const HISTORY_PREVIEW_PLACEHOLDER = `<!DOCTYPE html><html><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0e0e1c;color:#9ca3af;font-family:system-ui,sans-serif;font-size:13px;padding:24px;text-align:center;line-height:1.5}</style></head><body><p>Preview not kept in saved history.<br/>Use <strong>Regenerate from code</strong> in the Preview panel.</p></body></html>`;
+
+function projectForHistoryStorage(p: Project): Project {
+  return { ...p, previewHtml: HISTORY_PREVIEW_PLACEHOLDER };
+}
 
 function loadHistoryFromStorage(): Project[] {
   if (typeof localStorage === 'undefined') return [];
@@ -18,10 +26,32 @@ function loadHistoryFromStorage(): Project[] {
 
 function saveHistoryToStorage(history: Project[]) {
   if (typeof localStorage === 'undefined') return;
-  try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
-  } catch {
-    // ignore quota or other errors
+  const slice = history.slice(0, HISTORY_MAX);
+  const slim = slice.map(projectForHistoryStorage);
+  let warned = false;
+  for (let n = slim.length; n >= 0; n--) {
+    const toWrite = n === 0 ? [] : slim.slice(0, n);
+    try {
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(toWrite));
+      if (n < slim.length && n >= 0 && !warned) {
+        warned = true;
+        try {
+          useUiStore
+            .getState()
+            .showNotification(
+              n === 0
+                ? 'History could not be saved (storage full). Cleared saved builds.'
+                : `Storage almost full — kept ${n} recent build(s). Regenerate preview after load.`,
+              n === 0 ? 'error' : 'warning'
+            );
+        } catch {
+          /* no ui yet */
+        }
+      }
+      return;
+    } catch {
+      continue;
+    }
   }
 }
 
