@@ -56,11 +56,11 @@ It’s **open source**, runs **locally** (your API keys stay in your browser), a
 
 *One prompt → full Flutter app with live preview. Add a screenshot or GIF above to showcase the flow.*
 
-<a href="https://cdn.techinasia.com/wp-content/uploads/2015/05/Alibaba-Yahoo-on-HBOs-Silicon-Valley.gif" target="_blank" rel="noopener noreferrer">
-  <img src="https://cdn.techinasia.com/wp-content/uploads/2015/05/Alibaba-Yahoo-on-HBOs-Silicon-Valley.gif" alt="FlutterForge AI Demo" width="100%" />
+<a href="./assets/readme/demo.gif" target="_blank" rel="noopener noreferrer">
+  <img src="./assets/readme/demo.gif" alt="FlutterForge AI Demo" width="100%" />
 </a>
 
-[Open in full screen](https://cdn.techinasia.com/wp-content/uploads/2015/05/Alibaba-Yahoo-on-HBOs-Silicon-Valley.gif)
+[Open in full screen](./assets/readme/demo.gif)
 ![Flutter App Gallery](./flutter-app-gallery.svg)
 
 ---
