@@ -54,7 +54,7 @@ It’s **open source**, runs **locally** (your API keys stay in your browser), a
 
 ## 📸 See it in action
 
-*One prompt → full Flutter app with live preview. Add a screenshot or GIF above to showcase the flow.*
+*One prompt in. A complete Flutter app out — with a live preview.*
 
 <a href="./assets/readme/demo.gif" target="_blank" rel="noopener noreferrer">
   <img src="./assets/readme/demo.gif" alt="FlutterForge AI Demo" width="100%" />
