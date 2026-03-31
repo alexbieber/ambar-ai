@@ -56,6 +56,9 @@ It’s **open source**, runs **locally** (your API keys stay in your browser), a
 
 *One prompt → full Flutter app with live preview. Add a screenshot or GIF above to showcase the flow.*
 
+![FlutterForge AI - Multiple App Screens](./flutter-multi-app-screens.svg)
+![Flutter App Gallery](./flutter-app-gallery.svg)
+
 ---
 
 ## 🎯 Quick Start
@@ -196,3 +199,110 @@ This project is open source under the [MIT License](https://opensource.org/licen
 **If FlutterForge AI saves you time, consider giving it a ⭐ — it helps others discover the project.**
 
 </div>
+
+---
+
+## ✅ Prerequisites
+
+Before running locally, make sure you have:
+
+- **Node.js** 18+ (recommended LTS)
+- **npm** 9+ (comes with Node in most setups)
+- A modern browser (Chrome, Edge, Firefox, or Safari)
+- At least one provider key: **Gemini** or **Claude**
+
+Check versions:
+
+```bash
+node -v
+npm -v
+```
+
+---
+
+## 🧪 Available Scripts
+
+Common scripts from the project root:
+
+| Command | What it does |
+|---------|---------------|
+| `npm run dev` | Runs the Vite frontend in development mode. |
+| `npm run server` | Starts the Express proxy for AI provider calls. |
+| `npm run dev:full` | Starts both frontend and proxy together (recommended). |
+| `npm run build` | Creates an optimized production build in `dist/`. |
+| `npm run preview` | Serves the production build locally for a final check. |
+
+If one command fails, run scripts individually to isolate whether the issue is in the frontend (`dev`) or proxy (`server`).
+
+---
+
+## 🧠 Prompt Tips (Best Results)
+
+You can get better generated apps by including a few specifics:
+
+- **App type:** finance tracker, recipe app, social feed, habit tracker
+- **Core screens:** dashboard, detail page, settings, profile
+- **Data model hints:** transactions, categories, due dates, tags
+- **UI style:** minimal, Material 3, dark mode, card-heavy layout
+- **Behavior:** filtering, sorting, search, charts, offline cache
+
+Example prompts:
+
+- `A budget planner app with monthly charts, category filters, and transaction details`
+- `A recipe app with search, favorites, ingredient-based filtering, and detail screen`
+- `An Instagram-style photo feed with profile, explore, and story-like cards`
+
+---
+
+## 🔐 Security & Privacy Notes
+
+- API keys are entered client-side and remain in your browser session.
+- The local proxy forwards requests to providers and helps avoid browser CORS limitations.
+- Avoid committing secrets to git (`.env`, shell history, or screenshots with keys visible).
+- Rotate keys if you accidentally expose one.
+
+For team/shared demos, prefer temporary or restricted-scope provider keys.
+
+---
+
+## ❓ FAQ
+
+**Q: Do I need both Gemini and Claude keys?**  
+No. One key is enough to use FlutterForge AI. Adding both gives provider flexibility.
+
+**Q: Is generated Flutter code production-ready?**  
+Treat it as a high-quality starting point. Review architecture, validation, and error handling before shipping.
+
+**Q: Where do generated files go?**  
+In the UI, output is shown for copy/export. In CLI mode, output is written to the configured folder (default shown in script docs).
+
+**Q: Can I customize generated structure?**  
+Yes — include constraints directly in your prompt (state management style, folder conventions, dependencies, theme rules).
+
+---
+
+## 🗺 Roadmap Ideas
+
+Potential directions contributors can help with:
+
+- Provider abstraction for adding more LLM backends
+- More robust preview fidelity for complex Flutter widgets
+- Better prompt templates for common app archetypes
+- Optional test generation for generated Flutter code
+- One-click export templates for common Flutter project setups
+
+If you want to own one of these, open an Issue and mention the roadmap item.
+
+---
+
+## 🧾 Quick Verification Checklist
+
+Before opening a PR, a fast sanity pass helps:
+
+- `npm install` completes cleanly
+- `npm run dev:full` starts app + proxy without errors
+- Generation works with at least one valid provider key
+- `npm run build` succeeds
+- README/docs updated if behavior changed
+
+This keeps reviews fast and predictable for maintainers.
