@@ -1,5 +1,7 @@
 export const MODEL = 'claude-sonnet-4-20250514';
-export const GEMINI_MODEL = 'gemini-2.0-flash';
+// Default Gemini model for new sessions (can be overridden in Settings).
+// Use the latest 3.x Flash-style model for a good balance of speed and quality.
+export const GEMINI_MODEL = 'gemini-3-flash-preview';
 
 export const CLAUDE_MODELS: { id: string; label: string }[] = [
   { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4 (latest)' },
@@ -9,7 +11,10 @@ export const CLAUDE_MODELS: { id: string; label: string }[] = [
 ];
 
 export const GEMINI_MODELS: { id: string; label: string }[] = [
-  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash (recommended)' },
+  { id: 'gemini-3-flash-preview', label: 'Gemini 3 Flash (recommended)' },
+  { id: 'gemini-3.1-pro-preview', label: 'Gemini 3.1 Pro (preview)' },
+  { id: 'gemini-3.1-flash-lite-preview', label: 'Gemini 3.1 Flash-Lite (preview, cost-efficient)' },
+  { id: 'gemini-2.0-flash', label: 'Gemini 2.0 Flash' },
   { id: 'gemini-1.5-pro', label: 'Gemini 1.5 Pro' },
   { id: 'gemini-1.5-flash', label: 'Gemini 1.5 Flash' },
 ];
