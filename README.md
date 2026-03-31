@@ -56,7 +56,7 @@ It’s **open source**, runs **locally** (your API keys stay in your browser), a
 
 *One prompt → full Flutter app with live preview. Add a screenshot or GIF above to showcase the flow.*
 
-![FlutterForge AI - Multiple App Screens](./flutter-multi-app-screens.svg)
+![FlutterForge AI Demo](https://platform.theverge.com/wp-content/uploads/sites/2/chorus/uploads/chorus_asset/file/10529101/sv_gif.gif?quality=90&strip=all&crop=8.59375,0,82.8125,100)
 ![Flutter App Gallery](./flutter-app-gallery.svg)
 
 ---
