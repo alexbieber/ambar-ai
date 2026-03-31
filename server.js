@@ -2,12 +2,85 @@ import express from 'express';
 import cors from 'cors';
 import fetch from 'node-fetch';
 import os from 'os';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { spawn } from 'child_process';
 
 const app = express();
 const PORT = 3001;
+const FLUTTER_PREVIEW_PORT = 7357;
+const FLUTTER_PREVIEW_DIR = path.join(process.cwd(), '.flutter_runtime_preview');
 
 /** In-memory store for mobile preview (GET /preview returns this). */
 let sharedPreviewHtml = '';
+let flutterPreviewProc = null;
+let flutterPreviewLogs = [];
+
+function appendFlutterLog(line) {
+  flutterPreviewLogs.push(line);
+  if (flutterPreviewLogs.length > 200) flutterPreviewLogs = flutterPreviewLogs.slice(-200);
+}
+
+function safeProjectPath(p) {
+  if (typeof p !== 'string') return null;
+  if (!p.trim()) return null;
+  if (p.includes('\0')) return null;
+  const normalized = p.replace(/\\/g, '/');
+  if (normalized.startsWith('/') || normalized.startsWith('../') || normalized.includes('/../') || normalized === '..') {
+    return null;
+  }
+  return normalized;
+}
+
+async function writeFlutterFiles(files) {
+  await fs.rm(FLUTTER_PREVIEW_DIR, { recursive: true, force: true });
+  await fs.mkdir(FLUTTER_PREVIEW_DIR, { recursive: true });
+  for (const [filePath, content] of Object.entries(files || {})) {
+    const safePath = safeProjectPath(filePath);
+    if (!safePath || typeof content !== 'string') continue;
+    const fullPath = path.join(FLUTTER_PREVIEW_DIR, safePath);
+    await fs.mkdir(path.dirname(fullPath), { recursive: true });
+    await fs.writeFile(fullPath, content, 'utf8');
+  }
+}
+
+function runCommand(cmd, args, cwd) {
+  return new Promise((resolve, reject) => {
+    const p = spawn(cmd, args, { cwd, shell: true });
+    let stderr = '';
+    p.stdout.on('data', (d) => appendFlutterLog(String(d)));
+    p.stderr.on('data', (d) => {
+      const s = String(d);
+      stderr += s;
+      appendFlutterLog(s);
+    });
+    p.on('error', reject);
+    p.on('exit', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(stderr.trim() || `${cmd} exited with code ${code}`));
+    });
+  });
+}
+
+function stopFlutterPreview() {
+  if (!flutterPreviewProc) return;
+  try {
+    flutterPreviewProc.kill('SIGTERM');
+  } catch {}
+  flutterPreviewProc = null;
+}
+
+async function waitForFlutterPreview(timeoutMs = 60000) {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const r = await fetch(`http://127.0.0.1:${FLUTTER_PREVIEW_PORT}`);
+      if (r.ok) return true;
+    } catch {}
+    await new Promise((r) => setTimeout(r, 1200));
+  }
+  return false;
+}
 
 app.use(cors());
 app.use(express.json({ limit: '5mb' }));
@@ -211,6 +284,66 @@ Keep under 15 bullets. No code. No markdown. Plain bullet list.`;
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Proxy server is running' });
+});
+
+app.post('/flutter-preview/start', async (req, res) => {
+  try {
+    const files = req.body?.files;
+    if (!files || typeof files !== 'object') {
+      return res.status(400).json({ error: 'files object is required' });
+    }
+    if (typeof files['pubspec.yaml'] !== 'string' || typeof files['lib/main.dart'] !== 'string') {
+      return res.status(400).json({ error: 'Generated Flutter project must include pubspec.yaml and lib/main.dart' });
+    }
+
+    flutterPreviewLogs = [];
+    appendFlutterLog('Preparing Flutter runtime preview...');
+    await writeFlutterFiles(files);
+    stopFlutterPreview();
+
+    appendFlutterLog('Running flutter pub get...');
+    await runCommand('flutter', ['pub', 'get'], FLUTTER_PREVIEW_DIR);
+
+    appendFlutterLog('Starting flutter run (web)...');
+    flutterPreviewProc = spawn(
+      'flutter',
+      ['run', '-d', 'chrome', '--web-port', String(FLUTTER_PREVIEW_PORT)],
+      { cwd: FLUTTER_PREVIEW_DIR, shell: true }
+    );
+    flutterPreviewProc.stdout.on('data', (d) => appendFlutterLog(String(d)));
+    flutterPreviewProc.stderr.on('data', (d) => appendFlutterLog(String(d)));
+    flutterPreviewProc.on('exit', () => {
+      appendFlutterLog('Flutter preview process stopped.');
+      flutterPreviewProc = null;
+    });
+
+    const ready = await waitForFlutterPreview();
+    if (!ready) {
+      return res.status(504).json({
+        error: 'Flutter preview did not become ready in time.',
+        logs: flutterPreviewLogs.slice(-30),
+      });
+    }
+
+    return res.json({
+      ok: true,
+      url: `http://localhost:${FLUTTER_PREVIEW_PORT}`,
+      mode: 'runtime',
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: error instanceof Error ? error.message : 'Failed to start Flutter runtime preview',
+      logs: flutterPreviewLogs.slice(-30),
+    });
+  }
+});
+
+app.get('/flutter-preview/status', (_req, res) => {
+  res.json({
+    running: Boolean(flutterPreviewProc),
+    url: `http://localhost:${FLUTTER_PREVIEW_PORT}`,
+    logs: flutterPreviewLogs.slice(-20),
+  });
 });
 
 // ── Mobile preview (scan QR to open on phone) ─────────────────────────────

@@ -4,9 +4,10 @@ import { useProjectStore } from '../../stores/projectStore';
 import { useGenerate } from '../../hooks/useGenerate';
 import { createPreviewBlobUrl } from '../../services/previewGenerator';
 import { syncPreviewToServer, getPreviewUrl } from '../../services/previewSyncService';
+import { startFlutterRuntimePreview } from '../../services/flutterRuntimePreviewService';
 import { Tag } from '../ui/Tag';
 import { Spinner } from '../ui/Spinner';
-import { RotateCw, Maximize2, Smartphone, Code, X } from 'lucide-react';
+import { RotateCw, Maximize2, Smartphone, Code, X, Play } from 'lucide-react';
 import { clsx } from 'clsx';
 import type { PreviewSource } from '../../types';
 
@@ -48,6 +49,9 @@ export function PreviewPanel() {
   const [showQR, setShowQR] = useState(false);
   const [mobilePreviewUrl, setMobilePreviewUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState<string | null>(null);
+  const [runtimeUrl, setRuntimeUrl] = useState<string | null>(null);
+  const [runtimeLoading, setRuntimeLoading] = useState(false);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
 
   const blobUrlRef = useRef<string | null>(null);
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
@@ -71,6 +75,32 @@ export function PreviewPanel() {
       }
     };
   }, [project?.previewHtml]);
+
+  const startRuntimePreview = async () => {
+    if (!project) return;
+    setRuntimeLoading(true);
+    setRuntimeError(null);
+    try {
+      const url = await startFlutterRuntimePreview(project.files);
+      setRuntimeUrl(url);
+    } catch (err) {
+      setRuntimeUrl(null);
+      setRuntimeError(err instanceof Error ? err.message : 'Could not start runtime preview');
+    } finally {
+      setRuntimeLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!project) {
+      setRuntimeUrl(null);
+      setRuntimeError(null);
+      setRuntimeLoading(false);
+      return;
+    }
+    // Auto-start real Flutter runtime preview for each newly generated project.
+    startRuntimePreview();
+  }, [project?.id]);
 
   useEffect(() => {
     if (!fullscreen && !showQR) return;
@@ -146,6 +176,15 @@ export function PreviewPanel() {
           </button>
           <button
             type="button"
+            onClick={startRuntimePreview}
+            disabled={!project || runtimeLoading}
+            className="p-1.5 rounded text-[var(--muted)] hover:text-accent hover:bg-[var(--faint)] disabled:opacity-50"
+            title="Run real Flutter runtime preview"
+          >
+            <Play className={clsx('w-4 h-4', runtimeLoading && 'animate-pulse')} />
+          </button>
+          <button
+            type="button"
             onClick={() => setFullscreen(true)}
             className="p-1.5 rounded text-[var(--muted)] hover:text-accent hover:bg-[var(--faint)]"
             title="Fullscreen"
@@ -180,6 +219,11 @@ export function PreviewPanel() {
       </div>
 
       <div className="flex-1 overflow-auto flex flex-col items-center justify-center p-4 min-h-0">
+        {runtimeError && (
+          <div className="mb-2 text-[10px] text-amber-300 text-center max-w-[260px]">
+            Runtime preview unavailable: {runtimeError}
+          </div>
+        )}
         <div
           className={clsx(
             'overflow-hidden bg-[#0a0a0a] flex flex-col transition-shadow duration-300',
@@ -229,17 +273,17 @@ export function PreviewPanel() {
                   </div>
                 </div>
               )}
-              {project && hasContent && !isPlaceholderFailure && blobUrl && (
+              {project && hasContent && !isPlaceholderFailure && (runtimeUrl || blobUrl) && (
                 <div
                   className="flex items-center justify-center overflow-hidden"
                   style={{ width: style.width, height: contentH }}
                 >
                   <div style={{ width: scaledW, height: scaledH }} className="overflow-hidden shrink-0">
                     <iframe
-                      key={blobUrl}
-                      src={blobUrl}
+                      key={runtimeUrl || blobUrl || 'preview'}
+                      src={runtimeUrl || blobUrl || undefined}
                       title="Preview"
-                      sandbox="allow-scripts"
+                      sandbox={runtimeUrl ? undefined : 'allow-scripts'}
                       className="border-0 bg-white block"
                       style={{
                         width: PREVIEW_CONTENT_WIDTH,
@@ -263,6 +307,7 @@ export function PreviewPanel() {
           <div className="flex items-center gap-2 mt-3 flex-wrap justify-center">
             <Tag variant="violet">{fileCount} files</Tag>
             <Tag variant="muted">{totalLines} lines</Tag>
+            {runtimeUrl && <Tag variant="violet">Real Flutter runtime</Tag>}
             <span className="text-[9px] text-[var(--faint)]">Flutter · Dart</span>
           </div>
         )}
@@ -331,17 +376,17 @@ export function PreviewPanel() {
                   <div className="w-12 h-3 rounded-full bg-black" />
                 </div>
               )}
-              {project?.previewHtml && blobUrl && (
+              {project?.previewHtml && (runtimeUrl || blobUrl) && (
                 <div
                   className="flex-1 min-h-0 flex items-center justify-center overflow-hidden"
                   style={{ height: contentH }}
                 >
                   <div style={{ width: scaledW, height: scaledH }} className="overflow-hidden shrink-0">
                     <iframe
-                      key={blobUrl}
-                      src={blobUrl}
+                      key={runtimeUrl || blobUrl || 'preview-fullscreen'}
+                      src={runtimeUrl || blobUrl || undefined}
                       title="Preview fullscreen"
-                      sandbox="allow-scripts"
+                      sandbox={runtimeUrl ? undefined : 'allow-scripts'}
                       className="border-0 bg-white block"
                       style={{
                         width: PREVIEW_CONTENT_WIDTH,
