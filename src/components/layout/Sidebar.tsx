@@ -108,6 +108,9 @@ export function Sidebar() {
             <label className="block text-[9px] uppercase tracking-wider text-accent">
               Enhance this project
             </label>
+            <p className="text-[10px] text-[var(--muted)] mb-1">
+              Describe a small, focused change. We’ll only edit what&apos;s needed and keep the rest of your code as-is.
+            </p>
             <textarea
               data-purpose="enhance"
               value={enhanceInstruction}
@@ -291,9 +294,14 @@ export function Sidebar() {
                     onClick={() => loadFromHistory(i)}
                     className="w-full text-left rounded-lg p-2 hover:bg-[var(--faint)] border border-transparent hover:border-[var(--border)] transition-colors"
                   >
-                    <span className="text-[9px] text-accent">
-                      {new Date(proj.createdAt).toLocaleString()}
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] text-accent">
+                        {new Date(proj.createdAt).toLocaleString()}
+                      </span>
+                      <span className="text-[9px] text-[var(--muted)]">
+                        {proj.generatedByProvider === 'gemini' ? 'Gemini' : 'Claude'}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-2 mt-1">
                       <Tag variant="violet">{Object.keys(proj.files).length} files</Tag>
                     </div>

@@ -16,6 +16,7 @@ export function SettingsModal() {
   const geminiModelId = useAiStore((s) => s.geminiModelId);
   const setClaudeModel = useAiStore((s) => s.setClaudeModel);
   const setGeminiModel = useAiStore((s) => s.setGeminiModel);
+  const isConnected = useAiStore((s) => s.isConnected);
 
   const clearHistory = useProjectStore((s) => s.clearHistory);
 
@@ -59,6 +60,12 @@ export function SettingsModal() {
               <option value="gemini">Google (Gemini)</option>
               <option value="anthropic">Anthropic (Claude)</option>
             </select>
+            <p className="mt-2 text-[10px] text-[var(--muted)]">
+              Status:{' '}
+              <span className={isConnected ? 'text-emerald-400' : 'text-red-400'}>
+                {isConnected ? 'Connected (valid API key detected)' : 'No valid API key for selected provider'}
+              </span>
+            </p>
           </div>
 
           <div className="space-y-3">
